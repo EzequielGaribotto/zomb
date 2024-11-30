@@ -19,12 +19,15 @@ delay_max_enemies = 0
 
 # Zombie Stats
 zombie_speed = 0
+zombie_stun_duration = 0
+zombie_stun_speed = 0
 zombie_hp = 0
 zombie_power = 0
 ypos_bullet = 0
 xpos_bullet = 0
 ypos_zombie_sprite = 0
 zombie_xp_reward = 0
+
 
 # Player Stats
 direction = ""
@@ -56,9 +59,12 @@ class SpriteKind:
     player = SpriteKind.create()
     
 def on_projectile_collision(bullet, zombie):
-    global player_power, zombie_hp, player_exp, zombie_xp_reward
+    global player_power, zombie_hp, player_exp, zombie_xp_reward, zombie_stun_speed, zombie_stun_duration
     animate_bullet_collision(bullet)
     statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, zombie).value += -player_power
+    zombie.set_velocity(-zombie_stun_speed, 0)
+    pause(zombie_stun_duration)
+    zombie.set_velocity(-zombie_speed, 0)
 
 def on_on_zero(status):
     global player_power, zombie_hp, player_exp, zombie_xp_reward
@@ -85,7 +91,9 @@ def open_main_screen():
     global on_menu
     on_menu = True
     if on_menu == True:
-    
+        scene.set_background_image(assets.image("""
+                            woods
+                        """))
         create_title_sprite()
         bottom_text_sprite()
     else:
@@ -95,9 +103,6 @@ def open_main_screen():
 def create_title_sprite():
     global title_sprite
     title_sprite = textsprite.create("Zombie Game")
-    scene.set_background_image(assets.image("""
-                    woods
-                """))
     title_sprite.set_max_font_height(12)
     title_sprite.set_outline(1, 15)
     title_sprite.set_position(82, 43)
@@ -376,7 +381,7 @@ def set_player_stats(level: number):
         player_exp_required = 100
 
 def set_zombie_stats(level: number):
-    global zombie_hp, zombie_power, zombie_speed, delay_min_enemies, delay_max_enemies, zombie_xp_reward
+    global zombie_hp, zombie_power, zombie_speed, delay_min_enemies, delay_max_enemies, zombie_xp_reward, zombie_stun_speed, zombie_stun_duration
     # depending on the level, the zombie will upgrade different stats
     if level == 1:
         zombie_hp = 100
@@ -385,6 +390,8 @@ def set_zombie_stats(level: number):
         delay_min_enemies = 1000
         delay_max_enemies = 1500
         zombie_xp_reward = 50
+        zombie_stun_duration = 2000
+        zombie_stun_speed = 10
     elif level == 2:
         zombie_hp = 150
         zombie_power = 60
@@ -392,6 +399,8 @@ def set_zombie_stats(level: number):
         delay_min_enemies = 900
         delay_max_enemies = 1400
         zombie_xp_reward = 50
+        zombie_stun_duration = 1800
+        zombie_stun_speed = 12
     elif level == 3:
         zombie_hp = 200
         zombie_power = 70
@@ -399,6 +408,8 @@ def set_zombie_stats(level: number):
         delay_min_enemies = 800
         delay_max_enemies = 1300
         zombie_xp_reward = 50
+        zombie_stun_duration = 1600
+        zombie_stun_speed = 14
     elif level == 4:
         zombie_hp = 250
         zombie_power = 80
@@ -406,6 +417,8 @@ def set_zombie_stats(level: number):
         delay_min_enemies = 700
         delay_max_enemies = 1200
         zombie_xp_reward = 50
+        zombie_stun_duration = 1400
+        zombie_stun_speed = 16
     elif level == 5:
         zombie_hp = 300
         zombie_power = 90
@@ -413,6 +426,8 @@ def set_zombie_stats(level: number):
         delay_min_enemies = 600
         delay_max_enemies = 1100
         zombie_xp_reward = 50
+        zombie_stun_duration = 1200
+        zombie_stun_speed = 18
 
     elif level == 6:
         zombie_hp = 350
@@ -421,6 +436,8 @@ def set_zombie_stats(level: number):
         delay_min_enemies = 500
         delay_max_enemies = 1000
         zombie_xp_reward = 50
+        zombie_stun_duration = 1000
+        zombie_stun_speed = 20
 
     elif level == 7:
         zombie_hp = 400
@@ -429,6 +446,8 @@ def set_zombie_stats(level: number):
         delay_min_enemies = 400
         delay_max_enemies = 900
         zombie_xp_reward = 50
+        zombie_stun_duration = 800
+        zombie_stun_speed = 22
 
     elif level == 8:
         zombie_hp = 450
@@ -437,6 +456,8 @@ def set_zombie_stats(level: number):
         delay_min_enemies = 300
         delay_max_enemies = 800
         zombie_xp_reward = 50
+        zombie_stun_duration = 600
+        zombie_stun_speed = 24
 
     elif level == 9:
         zombie_hp = 500
@@ -445,6 +466,8 @@ def set_zombie_stats(level: number):
         delay_min_enemies = 200
         delay_max_enemies = 700
         zombie_xp_reward = 50
+        zombie_stun_duration = 400
+        zombie_stun_speed = 26
 
     elif level == 10:
         zombie_hp = 550
@@ -453,7 +476,8 @@ def set_zombie_stats(level: number):
         delay_min_enemies = 100
         delay_max_enemies = 600
         zombie_xp_reward = 50
-
+        zombie_stun_duration = 200
+        zombie_stun_speed = 28
 
 def destroy_bullets():
     global bullet_list
@@ -623,6 +647,7 @@ def on_up_pressed():
     if on_menu:
         pass
     else:
+        animation.stop_animation(animation.AnimationTypes.All, player_sprite)
         animation.run_image_animation(player_sprite,
             [img("""
                     . . . . . . f f f f . . . . . .
@@ -708,6 +733,7 @@ def on_left_pressed():
     if on_menu:
         pass
     else:
+        animation.stop_animation(animation.AnimationTypes.All, player_sprite)
         animation.run_image_animation(player_sprite,
             [img("""
                     . . . . f f f f f f . . . . . .
@@ -793,6 +819,7 @@ def on_right_pressed():
     if on_menu:
         pass
     else:
+        animation.stop_animation(animation.AnimationTypes.All, player_sprite)
         animation.run_image_animation(player_sprite,
             [img("""
                     . . . . . . f f f f f f . . . .
@@ -878,6 +905,7 @@ def on_down_pressed():
     if on_menu:
         pass
     else:
+        animation.stop_animation(animation.AnimationTypes.All, player_sprite)
         animation.run_image_animation(player_sprite,
             [img("""
                     . . . . . . f f f f . . . . . .
@@ -956,6 +984,112 @@ def on_down_pressed():
         direction = "down"
 controller.down.on_event(ControllerButtonEvent.PRESSED, on_down_pressed)
 
+# Released
+# Right
+
+def on_right_released():
+    if on_menu:
+            pass
+    else:
+        animation.stop_animation(animation.AnimationTypes.All, player_sprite)
+        animation.run_image_animation(player_sprite, [img("""
+        . . . . . . f f f f f f . . . .
+                            . . . . f f e e e e f 2 f . . .
+                            . . . f f e e e e f 2 2 2 f . .
+                            . . . f e e e f f e e e e f . .
+                            . . . f f f f e e 2 2 2 2 e f .
+                            . . . f e 2 2 2 f f f f e 2 f .
+                            . . f f f f f f f e e e f f f .
+                            . . f f e 4 4 e b f 4 4 e e f .
+                            . . f e e 4 d 4 1 f d d e f . .
+                            . . . f e e e 4 d d d d f . . .
+                            . . . . f f e e 4 4 4 e f . . .
+                            . . . . . 4 d d e 2 2 2 f . . .
+                            . . . . . e d d e 2 2 2 f . . .
+                            . . . . . f e e f 4 5 5 f . . .
+                            . . . . . . f f f f f f . . . .
+                            . . . . . . . f f f . . . . . .
+            """)], 100, False)
+controller.right.onEvent(ControllerButtonEvent.Released, on_right_released)
+
+# Left
+def on_left_released():
+    if on_menu:
+        pass
+    else:
+        animation.stop_animation(animation.AnimationTypes.All, player_sprite)
+        animation.run_image_animation(player_sprite, [img("""
+        . . . . f f f f f f . . . . . .
+                            . . . f 2 f e e e e f f . . . .
+                            . . f 2 2 2 f e e e e f f . . .
+                            . . f e e e e f f e e e f . . .
+                            . f e 2 2 2 2 e e f f f f . . .
+                            . f 2 e f f f f 2 2 2 e f . . .
+                            . f f f e e e f f f f f f f . .
+                            . f e e 4 4 f b e 4 4 e f f . .
+                            . . f e d d f 1 4 d 4 e e f . .
+                            . . . f d d d d 4 e e e f . . .
+                            . . . f e 4 4 4 e e f f . . . .
+                            . . . f 2 2 2 e d d 4 . . . . .
+                            . . . f 2 2 2 e d d e . . . . .
+                            . . . f 5 5 4 f e e f . . . . .
+                            . . . . f f f f f f . . . . . .
+                            . . . . . . f f f . . . . . . .
+            """)], 100, False)
+    controller.left.onEvent(ControllerButtonEvent.Released, on_left_released)
+
+# Up
+def on_up_released():
+    if on_menu:
+        pass
+    else:
+        animation.stop_animation(animation.AnimationTypes.All, player_sprite)
+        animation.run_image_animation(player_sprite, [img("""
+        . . . . . . f f f f . . . . . .
+                            . . . . f f e e e e f f . . . .
+                            . . . f e e e f f e e e f . . .
+                            . . f f f f f 2 2 f f f f f . .
+                            . . f f e 2 e 2 2 e 2 e f f . .
+                            . . f e 2 f 2 f f 2 f 2 e f . .
+                            . . f f f 2 2 e e 2 2 f f f . .
+                            . f f e f 2 f e e f 2 f e f f .
+                            . f e e f f e e e e f e e e f .
+                            . . f e e e e e e e e e e f . .
+                            . . . f e e e e e e e e f . . .
+                            . . e 4 f f f f f f f f 4 e . .
+                            . . 4 d f 2 2 2 2 2 2 f d 4 . .
+                            . . 4 4 f 4 4 4 4 4 4 f 4 4 . .
+                            . . . . . f f f f f f . . . . .
+                            . . . . . f f . . f f . . . . .
+            """)], 100, False)
+controller.up.onEvent(ControllerButtonEvent.Released, on_up_released)
+
+# Down
+def on_down_released():
+    if on_menu:
+        pass
+    else:
+        animation.stop_animation(animation.AnimationTypes.All, player_sprite)
+        animation.run_image_animation(player_sprite, [img("""
+                . . . . . . f f f f . . . . . .
+                        . . . . f f f 2 2 f f f . . . .
+                        . . . f f f 2 2 2 2 f f f . . .
+                        . . f f f e e e e e e f f f . .
+                        . . f f e 2 2 2 2 2 2 e e f . .
+                        . . f e 2 f f f f f f 2 e f . .
+                        . . f f f f e e e e f f f f . .
+                        . f f e f b f 4 4 f b f e f f .
+                        . f e e 4 1 f d d f 1 4 e e f .
+                        . . f e e d d d d d d e e f . .
+                        . . . f e e 4 4 4 4 e e f . . .
+                        . . e 4 f 2 2 2 2 2 2 f 4 e . .
+                        . . 4 d f 2 2 2 2 2 2 f d 4 . .
+                        . . 4 4 f 4 4 5 5 4 4 f 4 4 . .
+                        . . . . . f f f f f f . . . . .
+                        . . . . . f f . . f f . . . . .
+            """)], 100, False)
+controller.down.onEvent(ControllerButtonEvent.Released, on_down_released)
+
 
 # Button B
 def on_b_pressed():
@@ -1003,7 +1137,7 @@ def create_bullet():
 
     bullet_id = bullet_list.length + 1
     bullet = Bullet(bullet_sprite,bullet_id)
-    
+    animate_bullet(bullet_sprite)
     bullet_list.append(bullet)
     
     return bullet_sprite
@@ -1102,17 +1236,16 @@ def animate_bullet_collision(bullet):
         False)
     pause(0)
     sprites.destroy(bullet)
-def animate_bullet():
-    while bullet_sprite.x >= 0 and bullet_sprite.x <= 120 and (bullet_sprite.y >= 0 and bullet_sprite.y <= 120):
+def animate_bullet(bullet:Sprite):
+    while bullet.x >= 0 and bullet.x <= 120 and (bullet.y >= 0 and bullet.y <= 120):
         if direction == "left":
-            bullet_sprite.x += -1
+            bullet.x += -1
         elif direction == "right":
-            bullet_sprite.x += 1
+            bullet.x += 1
         elif direction == "up":
-            bullet_sprite.y += 1
+            bullet.y += 1
         else:
-            bullet_sprite.y += -1
-    sprites.destroy(bullet_sprite)
+            bullet.y += -1
 
 def on_on_update():
     scene.center_camera_at(player_sprite.x, 60)
