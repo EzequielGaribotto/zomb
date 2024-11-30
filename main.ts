@@ -116,7 +116,7 @@ function lore_screen() {
     on_lore_screen = true
     on_menu = false
     create_skip_lore_sprite()
-    story.setSoundEnabled(false)
+    story.setSoundEnabled(true)
     story.setPagePauseLength(0, 1000)
     scene.setBackgroundImage(assets.image`earth_image`)
     story.printDialog("Una misteriosa enfermedad contagiosa está arrasando el mundo,", 80, 90, 50, 150)
@@ -248,7 +248,6 @@ function lore_screen() {
     story.printDialog("Con el mundo al borde del colapso, Alex debe abrirse paso entre hordas de zombis", 80, 90, 50, 150)
     story.printDialog("para llegar al último refugio humano donde poder estar a salvo.", 80, 90, 50, 150)
     story.printDialog("¿Podrá salvarse y encontrar una cura?", 80, 90, 50, 150)
-    open_zombie_screen()
 }
 
 //  First screen
@@ -259,9 +258,11 @@ function open_zombie_screen() {
     
     on_zombie_screen = true
     on_menu = false
+    on_lore_screen = false
     player_level = 1
     create_player()
     story.spriteSayText(player_sprite, "ostras pedrin")
+    sprites.destroy(skip_lore_sprite)
     set_player_stats(player_level)
     set_zombie_stats(player_level)
     controller.moveSprite(player_sprite)
@@ -1132,12 +1133,20 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function on_a_pressed() {
     if (on_menu == true) {
         on_menu = false
         close_menu()
-        lore_screen()
+        story.startCutscene(function lore_cutscene() {
+            lore_screen()
+        })
         on_lore_screen = true
     } else if (on_lore_screen == true) {
         story.clearAllText()
-        open_zombie_screen()
+        skip_lore()
+        story.startCutscene(function zombie_cutscene() {
+            
+            open_zombie_screen()
+            sprites.destroy(skip_lore_sprite)
+        })
     } else if (on_zombie_screen == true) {
+        story.cancelCurrentCutscene()
         on_zombie_screen = false
     }
     
@@ -1146,6 +1155,13 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function on_a_pressed() {
 function close_menu() {
     sprites.destroy(title_sprite)
     sprites.destroy(text_sprite)
+}
+
+function skip_lore() {
+    
+    sprites.destroy(skip_lore_sprite)
+    pause(200)
+    create_skip_lore_sprite()
 }
 
 //  Bullet animation

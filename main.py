@@ -127,7 +127,7 @@ def lore_screen():
     on_lore_screen = True
     on_menu = False
     create_skip_lore_sprite()
-    story.set_sound_enabled(False)
+    story.set_sound_enabled(True)
     story.set_page_pause_length(0, 1000)
     scene.set_background_image(assets.image("""earth_image"""))
     story.print_dialog("Una misteriosa enfermedad contagiosa está arrasando el mundo,", 80, 90, 50, 150)
@@ -259,18 +259,20 @@ def lore_screen():
     story.print_dialog("Con el mundo al borde del colapso, Alex debe abrirse paso entre hordas de zombis", 80, 90, 50, 150)
     story.print_dialog("para llegar al último refugio humano donde poder estar a salvo.", 80, 90, 50, 150)
     story.print_dialog("¿Podrá salvarse y encontrar una cura?", 80, 90, 50, 150)
-    open_zombie_screen()
+
 # First screen
 def open_zombie_screen():
     scene.set_background_image(assets.image("""
                 cityscape
             """))
-    global on_zombie_screen, on_menu, ypos_zombie_sprite, player_level
+    global on_zombie_screen, on_menu, ypos_zombie_sprite, player_level, on_lore_screen, skip_lore_sprite
     on_zombie_screen = True
     on_menu = False
+    on_lore_screen = False
     player_level = 1
     create_player()
     story.sprite_say_text(player_sprite, "ostras pedrin")
+    sprites.destroy(skip_lore_sprite)
     set_player_stats(player_level)
     set_zombie_stats(player_level)
     controller.move_sprite(player_sprite)
@@ -1147,19 +1149,27 @@ def create_bullet():
     bullet_list.append(bullet)
     
     return bullet_sprite
-
+    
+def zombie_cutscene():
+    global skip_lore_sprite
+    open_zombie_screen()
+    sprites.destroy(skip_lore_sprite)
+def lore_cutscene():
+    lore_screen()
 # Button A
 def on_a_pressed():
     global on_menu, on_zombie_screen, on_lore_screen
     if on_menu == True:
         on_menu = False
         close_menu()
-        lore_screen()
+        story.start_cutscene(lore_cutscene)
         on_lore_screen = True
     elif on_lore_screen == True:
         story.clear_all_text()
-        open_zombie_screen()
+        skip_lore()
+        story.start_cutscene(zombie_cutscene)
     elif on_zombie_screen == True:
+        story.cancel_current_cutscene()
         on_zombie_screen = False
 controller.A.on_event(ControllerButtonEvent.PRESSED, on_a_pressed)
 
@@ -1167,7 +1177,13 @@ controller.A.on_event(ControllerButtonEvent.PRESSED, on_a_pressed)
 def close_menu():
     sprites.destroy(title_sprite)
     sprites.destroy(text_sprite)
-    
+
+def skip_lore():
+    global skip_lore_sprite
+    sprites.destroy(skip_lore_sprite)
+    pause(200)
+    create_skip_lore_sprite()
+
 # Bullet animation
 def animate_bullet_collision(bullet):
     animation.run_image_animation(bullet,
