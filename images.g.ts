@@ -249,7 +249,7 @@ dddddddddddd66666dddddddddddd99999999999dddddddddddd66666dddddddddddd99999999999
 6666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666
 6666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666
 `;
-case "image3":
+            case "image3":
             case "earth_image":return img`
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
@@ -741,6 +741,25 @@ ffffffffffceebbddddfddbebbfccbdbbbbdddddbfffffffffffffffffffffffffffeeeeeeeeeecc
 ................................................................................................................................................................
 ................................................................................................................................................................
 `;
+            case "image7":
+            case "myImage":return img`
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+. . . . . . . . . . . . . . . . 
+`;
         }
         return null;
     })
@@ -760,5 +779,4 @@ ffffffffffceebbddddfddbebbfccbdbbbbdddddbfffffffffffffffffffffffffffeeeeeeeeeecc
     })
 
 }
-
 // Auto-generated code. Do not edit.

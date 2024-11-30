@@ -9,6 +9,9 @@ bullet_sprite: Sprite = None
 bullet_list:List[Bullet] = []
 zombie_list:List[Zombie] = []
 
+# Status bar Sprites
+exp_status_bar:StatusBarSprite = None
+
 # Text Sprites
 title_sprite: TextSprite = None
 text_sprite: TextSprite = None
@@ -70,9 +73,10 @@ def on_projectile_collision(bullet, zombie):
     zombie.set_velocity(-zombie_speed, 0)
 
 def on_on_zero(status):
-    global player_power, zombie_hp, player_exp, zombie_xp_reward
+    global player_power, zombie_hp, player_exp, zombie_xp_reward, player_exp_required
     status.sprite_attached_to().destroy(effects.disintegrate)
     player_exp += zombie_xp_reward
+    update_exp_status_bar()
 statusbars.on_zero(StatusBarKind.enemy_health, on_on_zero)
 
 sprites.on_overlap(SpriteKind.projectile,
@@ -260,12 +264,15 @@ def lore_screen():
     story.print_dialog("para llegar al último refugio humano donde poder estar a salvo.", 80, 90, 50, 150)
     story.print_dialog("¿Podrá salvarse y encontrar una cura?", 80, 90, 50, 150)
 
+
+
+
 # First screen
 def open_zombie_screen():
     scene.set_background_image(assets.image("""
                 cityscape
             """))
-    global on_zombie_screen, on_menu, ypos_zombie_sprite, player_level, on_lore_screen, skip_lore_sprite
+    global on_zombie_screen, on_menu, ypos_zombie_sprite, player_level, on_lore_screen, skip_lore_sprite, exp_status_bar, player_exp, player_exp_required
     on_zombie_screen = True
     on_menu = False
     on_lore_screen = False
@@ -275,6 +282,8 @@ def open_zombie_screen():
     sprites.destroy(skip_lore_sprite)
     set_player_stats(player_level)
     set_zombie_stats(player_level)
+    exp_status_bar = statusbars.create(20, 4, StatusBarKind.Energy)
+    exp_status_bar.position_direction(CollisionDirection.TOP)
     controller.move_sprite(player_sprite)
     player_sprite.set_stay_in_screen(True)
     effects.star_field.start_screen_effect()
@@ -283,8 +292,15 @@ def open_zombie_screen():
     info.set_life(3)
     gamer()
 
+def update_exp_status_bar():
+    global player_exp_required, player_exp
+    exp_status_bar.max = player_exp_required
+    exp_status_bar.value = player_exp
+    exp_status_bar.set_label("EXP: "+ player_exp + "/" + player_exp_required)
+
 def gamer():
     global delay_min_enemies, delay_max_enemies, player_exp, player_exp_required, player_hp
+    update_exp_status_bar()
     while player_exp < player_exp_required and info.life() > 0:
         pause(randint(delay_min_enemies, delay_max_enemies))
         destroy_zombies()
@@ -298,16 +314,19 @@ def gamer():
 
 def next_level():
     global player_level, player_exp, player_exp_required, player_hp, player_power, zombie_hp, zombie_power, zombie_speed
-
+    
     if (info.life() > 0):
         player_level += 1
     if (player_level == 11):
         game_over()
     player_exp = 0
+    update_exp_status_bar()
     set_zombie_stats(player_level)
     set_player_stats(player_level)
+    
     game.splash("Level Up! - " + player_level)
     destroy_all_zombies()
+    destroy_all_bullets()
     player_sprite.set_position(10, 60)
     gamer()
 
@@ -329,8 +348,9 @@ def stats_screen():
     game.splash("Stats")
 
 def set_player_stats(level: number):
-    global player_hp, player_power, player_speed, player_exp_required
+    global player_hp, player_power, player_speed, player_exp_required, exp_status_bar
     # depending on the level, the player will upgrade different stats
+
     if level == 1:
         player_hp = 100
         player_power = 50
@@ -340,53 +360,53 @@ def set_player_stats(level: number):
         player_hp = 150
         player_power = 60
         player_speed = 210
-        player_exp_required = 100
+        player_exp_required = 200
     elif level == 3:
         player_hp = 200
         player_power = 70
         player_speed = 220
-        player_exp_required = 100
+        player_exp_required = 300
         if (info.life() < 3):
             info.change_life_by(+1)
     elif level == 4:
         player_hp = 250
         player_power = 80
         player_speed = 230
-        player_exp_required = 100
+        player_exp_required = 400
     elif level == 5:
         player_hp = 300
         player_power = 90
         player_speed = 240
-        player_exp_required = 100
+        player_exp_required = 500
     elif level == 6:
         player_hp = 350
         player_power = 100
         player_speed = 250
-        player_exp_required = 100
+        player_exp_required = 600
         if (info.life() < 3):
             info.change_life_by(+1)
     elif level == 7:
         player_hp = 400
         player_power = 110
         player_speed = 260
-        player_exp_required = 100
+        player_exp_required = 700
     elif level == 8:
         player_hp = 450
         player_power = 120
         player_speed = 270
-        player_exp_required = 100
+        player_exp_required = 800
     elif level == 9:
         player_hp = 500
         player_power = 130
         player_speed = 280
-        player_exp_required = 100
+        player_exp_required = 900
         if (info.life() < 3):
             info.change_life_by(+1)
     elif level == 10:
         player_hp = 550
         player_power = 140
         player_speed = 290
-        player_exp_required = 100
+        player_exp_required = 1000
 
 def set_zombie_stats(level: number):
     global zombie_hp, zombie_power, zombie_speed, delay_min_enemies, delay_max_enemies, zombie_xp_reward, zombie_stun_speed, zombie_stun_duration
@@ -505,7 +525,13 @@ def destroy_all_zombies():
     global zombie_list
     global player_sprite
     for z in zombie_list:
-        sprites.destroy(z.sprite, effects.disintegrate)
+        sprites.destroy(z.sprite)
+
+def destroy_all_bullets():
+    global bullet_list
+    global player_sprite
+    for b in bullet_list:
+        sprites.destroy(b.sprite)
 
 class Bullet:
     def __init__(self, sprite: Sprite, bullet_id: Number):
@@ -643,6 +669,7 @@ def create_zombie():
     zombie_sprite.set_velocity(-zombie_speed, 0)
     zombie_list.push(Zombie(zombie_sprite, zombie_list.length +1))
     statusbar = statusbars.create(16, 2, StatusBarKind.enemy_health)
+    statusbar.set_label("HP")
     statusbar.max = zombie_hp
     statusbar.value = zombie_hp
     statusbar.attachToSprite(zombie_sprite)

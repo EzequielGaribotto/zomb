@@ -6,6 +6,8 @@ let bullet_sprite : Sprite = null
 //  Sprite lists
 let bullet_list : Bullet[] = []
 let zombie_list : Zombie[] = []
+//  Status bar Sprites
+let exp_status_bar : StatusBarSprite = null
 //  Text Sprites
 let title_sprite : TextSprite = null
 let text_sprite : TextSprite = null
@@ -56,6 +58,7 @@ statusbars.onZero(StatusBarKind.EnemyHealth, function on_on_zero(status: StatusB
     
     status.spriteAttachedTo().destroy(effects.disintegrate)
     player_exp += zombie_xp_reward
+    update_exp_status_bar()
 })
 sprites.onOverlap(SpriteKind.projectile, SpriteKind.enemy, function on_projectile_collision(bullet: Sprite, zombie: Sprite) {
     
@@ -265,6 +268,8 @@ function open_zombie_screen() {
     sprites.destroy(skip_lore_sprite)
     set_player_stats(player_level)
     set_zombie_stats(player_level)
+    exp_status_bar = statusbars.create(20, 4, StatusBarKind.Energy)
+    exp_status_bar.positionDirection(CollisionDirection.Top)
     controller.moveSprite(player_sprite)
     player_sprite.setStayInScreen(true)
     effects.starField.startScreenEffect()
@@ -276,8 +281,16 @@ function open_zombie_screen() {
     gamer()
 }
 
+function update_exp_status_bar() {
+    
+    exp_status_bar.max = player_exp_required
+    exp_status_bar.value = player_exp
+    exp_status_bar.setLabel("EXP: " + player_exp + "/" + player_exp_required)
+}
+
 function gamer() {
     
+    update_exp_status_bar()
     while (player_exp < player_exp_required && info.life() > 0) {
         pause(randint(delay_min_enemies, delay_max_enemies))
         destroy_zombies()
@@ -302,10 +315,12 @@ function next_level() {
     }
     
     player_exp = 0
+    update_exp_status_bar()
     set_zombie_stats(player_level)
     set_player_stats(player_level)
     game.splash("Level Up! - " + player_level)
     destroy_all_zombies()
+    destroy_all_bullets()
     player_sprite.setPosition(10, 60)
     gamer()
 }
@@ -341,12 +356,12 @@ function set_player_stats(level: number) {
         player_hp = 150
         player_power = 60
         player_speed = 210
-        player_exp_required = 100
+        player_exp_required = 200
     } else if (level == 3) {
         player_hp = 200
         player_power = 70
         player_speed = 220
-        player_exp_required = 100
+        player_exp_required = 300
         if (info.life() < 3) {
             info.changeLifeBy(+1)
         }
@@ -355,17 +370,17 @@ function set_player_stats(level: number) {
         player_hp = 250
         player_power = 80
         player_speed = 230
-        player_exp_required = 100
+        player_exp_required = 400
     } else if (level == 5) {
         player_hp = 300
         player_power = 90
         player_speed = 240
-        player_exp_required = 100
+        player_exp_required = 500
     } else if (level == 6) {
         player_hp = 350
         player_power = 100
         player_speed = 250
-        player_exp_required = 100
+        player_exp_required = 600
         if (info.life() < 3) {
             info.changeLifeBy(+1)
         }
@@ -374,17 +389,17 @@ function set_player_stats(level: number) {
         player_hp = 400
         player_power = 110
         player_speed = 260
-        player_exp_required = 100
+        player_exp_required = 700
     } else if (level == 8) {
         player_hp = 450
         player_power = 120
         player_speed = 270
-        player_exp_required = 100
+        player_exp_required = 800
     } else if (level == 9) {
         player_hp = 500
         player_power = 130
         player_speed = 280
-        player_exp_required = 100
+        player_exp_required = 900
         if (info.life() < 3) {
             info.changeLifeBy(+1)
         }
@@ -393,7 +408,7 @@ function set_player_stats(level: number) {
         player_hp = 550
         player_power = 140
         player_speed = 290
-        player_exp_required = 100
+        player_exp_required = 1000
     }
     
 }
@@ -521,7 +536,15 @@ function destroy_all_zombies() {
     
     
     for (let z of zombie_list) {
-        sprites.destroy(z.sprite, effects.disintegrate)
+        sprites.destroy(z.sprite)
+    }
+}
+
+function destroy_all_bullets() {
+    
+    
+    for (let b of bullet_list) {
+        sprites.destroy(b.sprite)
     }
 }
 
@@ -664,6 +687,7 @@ function create_zombie() {
     zombie_sprite.setVelocity(-zombie_speed, 0)
     zombie_list.push(new Zombie(zombie_sprite, zombie_list.length + 1))
     statusbar = statusbars.create(16, 2, StatusBarKind.EnemyHealth)
+    statusbar.setLabel("HP")
     statusbar.max = zombie_hp
     statusbar.value = zombie_hp
     statusbar.attachToSprite(zombie_sprite)
