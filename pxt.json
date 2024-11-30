@@ -7,7 +7,9 @@
         "arcade-background-scroll": "github:microsoft/arcade-background-scroll#v0.1.2",
         "arcade-text": "github:microsoft/arcade-text#v1.3.0",
         "sprite-scaling": "*",
-        "pxt-status-bar": "github:jwunderl/pxt-status-bar#v0.4.2"
+        "pxt-status-bar": "github:jwunderl/pxt-status-bar#v0.4.2",
+        "darts": "*",
+        "arcade-story": "github:microsoft/arcade-storytelling#v1.0.3"
     },
     "files": [
         "main.blocks",

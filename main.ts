@@ -9,6 +9,7 @@ let zombie_list : Zombie[] = []
 //  Text Sprites
 let title_sprite : TextSprite = null
 let text_sprite : TextSprite = null
+let skip_lore_sprite : TextSprite = null
 //  Enemies stats
 let delay_min_enemies = 0
 let delay_max_enemies = 0
@@ -34,6 +35,8 @@ let player_speed = 0
 //  Booleans
 let on_menu = true
 let on_zombie_screen = false
+let on_lore_screen = false
+let next_lore = false
 //  CONSTANTS
 //  Boundaries
 let RIGHT_BOUNDARY = 160
@@ -101,53 +104,24 @@ function bottom_text_sprite() {
     text_sprite.setPosition(80, 110)
 }
 
-//  First screen
-function open_zombie_screen() {
-    scene.setBackgroundImage(assets.image`
-                cityscape
-            `)
+function create_skip_lore_sprite() {
     
-    on_zombie_screen = true
-    on_menu = false
-    player_level = 1
-    create_player()
-    set_player_stats(player_level)
-    set_zombie_stats(player_level)
-    controller.moveSprite(player_sprite)
-    player_sprite.setStayInScreen(true)
-    effects.starField.startScreenEffect()
-    scroller.setCameraScrollingMultipliers(1, 0)
-    game.onUpdate(function on_on_update() {
-        scene.centerCameraAt(player_sprite.x, 60)
-    })
-    info.setLife(3)
-    gamer()
-}
-
-function gamer() {
-    
-    while (player_exp < player_exp_required && info.life() > 0) {
-        pause(randint(delay_min_enemies, delay_max_enemies))
-        destroy_zombies()
-        destroy_bullets()
-        if (player_exp < player_exp_required && info.life() > 0) {
-            create_zombie()
-        } else {
-            next_level()
-        }
-        
-    }
+    skip_lore_sprite = textsprite.create("Press A to Skip Lore")
+    skip_lore_sprite.setOutline(0.2, 1)
+    skip_lore_sprite.setPosition(80, 110)
 }
 
 function lore_screen() {
-    scene.setBackgroundImage(assets.image`
-        earth_image
-    `)
-    game.showLongText("Una misteriosa enfermedad contagiosa está arrasando el mundo,", DialogLayout.Bottom)
-    scene.setBackgroundImage(assets.image`
-        zombie_image2
-    `)
-    game.showLongText("transformando a la gente en zombis sedientos de sangre humana.", DialogLayout.Bottom)
+    
+    on_lore_screen = true
+    on_menu = false
+    create_skip_lore_sprite()
+    story.setSoundEnabled(false)
+    story.setPagePauseLength(0, 1000)
+    scene.setBackgroundImage(assets.image`earth_image`)
+    story.printDialog("Una misteriosa enfermedad contagiosa está arrasando el mundo,", 80, 90, 50, 150)
+    scene.setBackgroundImage(assets.image`zombie_image2`)
+    story.printDialog("transformando a la gente en zombis sedientos de sangre humana.", 80, 90, 50, 150)
     scene.setBackgroundImage(img`
         cccfffffffffffffffffffffffffffffffffffffffffffccccccceeebbbbbbbbbbbbbbcccbbbbbbcccccbbbbbbcccccfccccccccfffffffffffffffffffffffffffffffffffffffffffffcffffffffff
                 cccfffffffffffffffffffffffffffffffccfffffffffccccccccceebbbbbbbbbbbbbbbbbbbbbbcccccbbbbbbbcccccccccccccccffffffffffffffffffffffffffffffffffffffffffffcccffffffff
@@ -268,14 +242,52 @@ function lore_screen() {
                 ................................................................................................................................................................
                 ................................................................................................................................................................
                 ................................................................................................................................................................
-                ................................................................................................................................................................
-    `)
-    game.showLongText("Alex Byte, un joven inventor, sobrevive usando su ingenio y", DialogLayout.Bottom)
-    game.showLongText("un Micro:bit modificado, capaz de guiarse y comunicarse con él.", DialogLayout.Bottom)
-    game.showLongText("Con el mundo al borde del colapso, Alex debe abrirse paso entre hordas de zombis", DialogLayout.Bottom)
-    game.showLongText("para llegar al último refugio humano donde poder estar a salvo.", DialogLayout.Bottom)
-    game.showLongText("¿Podrá salvarse y encontrar una cura?", DialogLayout.Bottom)
+                ................................................................................................................................................................`)
+    story.printDialog("Alex Byte, un joven inventor, sobrevive usando su ingenio y", 80, 90, 50, 150)
+    story.printDialog("un Micro:bit modificado, capaz de guiarse y comunicarse con él.", 80, 90, 50, 150)
+    story.printDialog("Con el mundo al borde del colapso, Alex debe abrirse paso entre hordas de zombis", 80, 90, 50, 150)
+    story.printDialog("para llegar al último refugio humano donde poder estar a salvo.", 80, 90, 50, 150)
+    story.printDialog("¿Podrá salvarse y encontrar una cura?", 80, 90, 50, 150)
     open_zombie_screen()
+}
+
+//  First screen
+function open_zombie_screen() {
+    scene.setBackgroundImage(assets.image`
+                cityscape
+            `)
+    
+    on_zombie_screen = true
+    on_menu = false
+    player_level = 1
+    create_player()
+    story.spriteSayText(player_sprite, "ostras pedrin")
+    set_player_stats(player_level)
+    set_zombie_stats(player_level)
+    controller.moveSprite(player_sprite)
+    player_sprite.setStayInScreen(true)
+    effects.starField.startScreenEffect()
+    scroller.setCameraScrollingMultipliers(1, 0)
+    game.onUpdate(function on_on_update() {
+        scene.centerCameraAt(player_sprite.x, 60)
+    })
+    info.setLife(3)
+    gamer()
+}
+
+function gamer() {
+    
+    while (player_exp < player_exp_required && info.life() > 0) {
+        pause(randint(delay_min_enemies, delay_max_enemies))
+        destroy_zombies()
+        destroy_bullets()
+        if (player_exp < player_exp_required && info.life() > 0) {
+            create_zombie()
+        } else {
+            next_level()
+        }
+        
+    }
 }
 
 function next_level() {
@@ -1121,12 +1133,16 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function on_a_pressed() {
         on_menu = false
         close_menu()
         lore_screen()
+        on_lore_screen = true
+    } else if (on_lore_screen == true) {
+        story.clearAllText()
+        open_zombie_screen()
     } else if (on_zombie_screen == true) {
         on_zombie_screen = false
     }
     
 })
-//  Related functions to button B
+//  Related functions to button A
 function close_menu() {
     sprites.destroy(title_sprite)
     sprites.destroy(text_sprite)

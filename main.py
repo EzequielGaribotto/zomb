@@ -12,6 +12,7 @@ zombie_list:List[Zombie] = []
 # Text Sprites
 title_sprite: TextSprite = None
 text_sprite: TextSprite = None
+skip_lore_sprite: TextSprite = None
 
 # Enemies stats
 delay_min_enemies = 0
@@ -42,6 +43,8 @@ player_speed = 0
 # Booleans
 on_menu = True
 on_zombie_screen = False
+on_lore_screen = False
+next_lore = False
 
 # CONSTANTS
 # Boundaries
@@ -113,48 +116,23 @@ def bottom_text_sprite():
     text_sprite.set_outline(0.2, 1)
     text_sprite.set_position(80, 110)
 
-# First screen
-def open_zombie_screen():
-    scene.set_background_image(assets.image("""
-                cityscape
-            """))
-    global on_zombie_screen, on_menu, ypos_zombie_sprite, player_level
-    on_zombie_screen = True
-    on_menu = False
-    player_level = 1
-    create_player()
-    set_player_stats(player_level)
-    set_zombie_stats(player_level)
-    controller.move_sprite(player_sprite)
-    player_sprite.set_stay_in_screen(True)
-    effects.star_field.start_screen_effect()
-    scroller.set_camera_scrolling_multipliers(1, 0)
-    game.on_update(on_on_update)
-    info.set_life(3)
-    gamer()
-
-def gamer():
-    global delay_min_enemies, delay_max_enemies, player_exp, player_exp_required, player_hp
-    while player_exp < player_exp_required and info.life() > 0:
-        pause(randint(delay_min_enemies, delay_max_enemies))
-        destroy_zombies()
-        destroy_bullets()
-        if player_exp < player_exp_required and info.life() > 0:
-            create_zombie()
-        else:
-            next_level()
+def create_skip_lore_sprite():
+    global skip_lore_sprite
+    skip_lore_sprite = textsprite.create("Press A to Skip Lore")
+    skip_lore_sprite.set_outline(0.2, 1)
+    skip_lore_sprite.set_position(80, 110)
 
 def lore_screen():
-    scene.set_background_image(assets.image("""
-        earth_image
-    """))
-    game.show_long_text("Una misteriosa enfermedad contagiosa está arrasando el mundo,",
-        DialogLayout.BOTTOM)
-    scene.set_background_image(assets.image("""
-        zombie_image2
-    """))
-    game.show_long_text("transformando a la gente en zombis sedientos de sangre humana.",
-        DialogLayout.BOTTOM)
+    global on_lore_screen, on_menu
+    on_lore_screen = True
+    on_menu = False
+    create_skip_lore_sprite()
+    story.set_sound_enabled(False)
+    story.set_page_pause_length(0, 1000)
+    scene.set_background_image(assets.image("""earth_image"""))
+    story.print_dialog("Una misteriosa enfermedad contagiosa está arrasando el mundo,", 80, 90, 50, 150)
+    scene.set_background_image(assets.image("""zombie_image2"""))
+    story.print_dialog("transformando a la gente en zombis sedientos de sangre humana.", 80, 90, 50, 150)
     scene.set_background_image(img("""
         cccfffffffffffffffffffffffffffffffffffffffffffccccccceeebbbbbbbbbbbbbbcccbbbbbbcccccbbbbbbcccccfccccccccfffffffffffffffffffffffffffffffffffffffffffffcffffffffff
                 cccfffffffffffffffffffffffffffffffccfffffffffccccccccceebbbbbbbbbbbbbbbbbbbbbbcccccbbbbbbbcccccccccccccccffffffffffffffffffffffffffffffffffffffffffffcccffffffff
@@ -275,18 +253,46 @@ def lore_screen():
                 ................................................................................................................................................................
                 ................................................................................................................................................................
                 ................................................................................................................................................................
-                ................................................................................................................................................................
-    """))
-    game.show_long_text("Alex Byte, un joven inventor, sobrevive usando su ingenio y",
-        DialogLayout.BOTTOM)
-    game.show_long_text("un Micro:bit modificado, capaz de guiarse y comunicarse con él.",
-        DialogLayout.BOTTOM)
-    game.show_long_text("Con el mundo al borde del colapso, Alex debe abrirse paso entre hordas de zombis",
-        DialogLayout.BOTTOM)
-    game.show_long_text("para llegar al último refugio humano donde poder estar a salvo.",
-        DialogLayout.BOTTOM)
-    game.show_long_text("¿Podrá salvarse y encontrar una cura?", DialogLayout.BOTTOM)
+                ................................................................................................................................................................"""))
+    story.print_dialog("Alex Byte, un joven inventor, sobrevive usando su ingenio y", 80, 90, 50, 150)
+    story.print_dialog("un Micro:bit modificado, capaz de guiarse y comunicarse con él.", 80, 90, 50, 150)
+    story.print_dialog("Con el mundo al borde del colapso, Alex debe abrirse paso entre hordas de zombis", 80, 90, 50, 150)
+    story.print_dialog("para llegar al último refugio humano donde poder estar a salvo.", 80, 90, 50, 150)
+    story.print_dialog("¿Podrá salvarse y encontrar una cura?", 80, 90, 50, 150)
     open_zombie_screen()
+# First screen
+def open_zombie_screen():
+    scene.set_background_image(assets.image("""
+                cityscape
+            """))
+    global on_zombie_screen, on_menu, ypos_zombie_sprite, player_level
+    on_zombie_screen = True
+    on_menu = False
+    player_level = 1
+    create_player()
+    story.sprite_say_text(player_sprite, "ostras pedrin")
+    set_player_stats(player_level)
+    set_zombie_stats(player_level)
+    controller.move_sprite(player_sprite)
+    player_sprite.set_stay_in_screen(True)
+    effects.star_field.start_screen_effect()
+    scroller.set_camera_scrolling_multipliers(1, 0)
+    game.on_update(on_on_update)
+    info.set_life(3)
+    gamer()
+
+def gamer():
+    global delay_min_enemies, delay_max_enemies, player_exp, player_exp_required, player_hp
+    while player_exp < player_exp_required and info.life() > 0:
+        pause(randint(delay_min_enemies, delay_max_enemies))
+        destroy_zombies()
+        destroy_bullets()
+        if player_exp < player_exp_required and info.life() > 0:
+            create_zombie()
+        else:
+            next_level()
+
+
 
 def next_level():
     global player_level, player_exp, player_exp_required, player_hp, player_power, zombie_hp, zombie_power, zombie_speed
@@ -1144,19 +1150,24 @@ def create_bullet():
 
 # Button A
 def on_a_pressed():
-    global on_menu, on_zombie_screen
+    global on_menu, on_zombie_screen, on_lore_screen
     if on_menu == True:
         on_menu = False
         close_menu()
         lore_screen()
+        on_lore_screen = True
+    elif on_lore_screen == True:
+        story.clear_all_text()
+        open_zombie_screen()
     elif on_zombie_screen == True:
         on_zombie_screen = False
 controller.A.on_event(ControllerButtonEvent.PRESSED, on_a_pressed)
 
-# Related functions to button B
+# Related functions to button A
 def close_menu():
     sprites.destroy(title_sprite)
     sprites.destroy(text_sprite)
+    
 # Bullet animation
 def animate_bullet_collision(bullet):
     animation.run_image_animation(bullet,
