@@ -58,11 +58,14 @@ class SpriteKind:
 def on_projectile_collision(bullet, zombie):
     global player_power, zombie_hp, player_exp, zombie_xp_reward
     animate_bullet_collision(bullet)
-    zombie_hp += -player_power
     statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, zombie).value += -player_power
-    if zombie_hp <= 0:
-        sprites.destroy(zombie, effects.disintegrate, 500)
-        player_exp += zombie_xp_reward
+
+def on_on_zero(status):
+    global player_power, zombie_hp, player_exp, zombie_xp_reward
+    status.sprite_attached_to().destroy(effects.disintegrate)
+    player_exp += zombie_xp_reward
+statusbars.on_zero(StatusBarKind.enemy_health, on_on_zero)
+
 sprites.on_overlap(SpriteKind.projectile,
     SpriteKind.enemy,
     on_projectile_collision)
@@ -92,6 +95,9 @@ def open_main_screen():
 def create_title_sprite():
     global title_sprite
     title_sprite = textsprite.create("Zombie Game")
+    scene.set_background_image(assets.image("""
+                    woods
+                """))
     title_sprite.set_max_font_height(12)
     title_sprite.set_outline(1, 15)
     title_sprite.set_position(82, 43)
@@ -104,7 +110,6 @@ def bottom_text_sprite():
 
 # First screen
 def open_zombie_screen():
-    lore_screen()
     scene.set_background_image(assets.image("""
                 cityscape
             """))
@@ -124,12 +129,12 @@ def open_zombie_screen():
     gamer()
 
 def gamer():
-    global delay_min_enemies, delay_max_enemies
-    while player_exp < player_exp_required and player_hp > 0:
+    global delay_min_enemies, delay_max_enemies, player_exp, player_exp_required, player_hp
+    while player_exp < player_exp_required and info.life() > 0:
         pause(randint(delay_min_enemies, delay_max_enemies))
         destroy_zombies()
         destroy_bullets()
-        if player_exp < player_exp_required and player_hp > 0:
+        if player_exp < player_exp_required and info.life() > 0:
             create_zombie()
         else:
             next_level()
@@ -276,6 +281,7 @@ def lore_screen():
     game.show_long_text("para llegar al último refugio humano donde poder estar a salvo.",
         DialogLayout.BOTTOM)
     game.show_long_text("¿Podrá salvarse y encontrar una cura?", DialogLayout.BOTTOM)
+    open_zombie_screen()
 
 def next_level():
     global player_level, player_exp, player_exp_required, player_hp, player_power, zombie_hp, zombie_power, zombie_speed
@@ -605,7 +611,8 @@ def create_zombie():
     zombie_sprite.set_velocity(-zombie_speed, 0)
     zombie_list.push(Zombie(zombie_sprite, zombie_list.length +1))
     statusbar = statusbars.create(16, 2, StatusBarKind.enemy_health)
-    statusbar.max = 100
+    statusbar.max = zombie_hp
+    statusbar.value = zombie_hp
     statusbar.attachToSprite(zombie_sprite)
 # Controls
 # Player movement
@@ -1007,7 +1014,7 @@ def on_a_pressed():
     if on_menu == True:
         on_menu = False
         close_menu()
-        open_zombie_screen()
+        lore_screen()
     elif on_zombie_screen == True:
         on_zombie_screen = False
 controller.A.on_event(ControllerButtonEvent.PRESSED, on_a_pressed)

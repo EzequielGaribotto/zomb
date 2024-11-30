@@ -47,16 +47,15 @@ namespace SpriteKind {
     export const player = SpriteKind.create()
 }
 
+statusbars.onZero(StatusBarKind.EnemyHealth, function on_on_zero(status: StatusBarSprite) {
+    
+    status.spriteAttachedTo().destroy(effects.disintegrate)
+    player_exp += zombie_xp_reward
+})
 sprites.onOverlap(SpriteKind.projectile, SpriteKind.enemy, function on_projectile_collision(bullet: Sprite, zombie: Sprite) {
     
     animate_bullet_collision(bullet)
-    zombie_hp += -player_power
     statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, zombie).value += -player_power
-    if (zombie_hp <= 0) {
-        sprites.destroy(zombie, effects.disintegrate, 500)
-        player_exp += zombie_xp_reward
-    }
-    
 })
 sprites.onOverlap(SpriteKind.player, SpriteKind.enemy, function on_player_collision_with_enemy(player: Sprite, zombie: Sprite) {
     
@@ -82,6 +81,9 @@ function open_main_screen() {
 function create_title_sprite() {
     
     title_sprite = textsprite.create("Zombie Game")
+    scene.setBackgroundImage(assets.image`
+                    woods
+                `)
     title_sprite.setMaxFontHeight(12)
     title_sprite.setOutline(1, 15)
     title_sprite.setPosition(82, 43)
@@ -96,7 +98,6 @@ function bottom_text_sprite() {
 
 //  First screen
 function open_zombie_screen() {
-    lore_screen()
     scene.setBackgroundImage(assets.image`
                 cityscape
             `)
@@ -120,11 +121,11 @@ function open_zombie_screen() {
 
 function gamer() {
     
-    while (player_exp < player_exp_required && player_hp > 0) {
+    while (player_exp < player_exp_required && info.life() > 0) {
         pause(randint(delay_min_enemies, delay_max_enemies))
         destroy_zombies()
         destroy_bullets()
-        if (player_exp < player_exp_required && player_hp > 0) {
+        if (player_exp < player_exp_required && info.life() > 0) {
             create_zombie()
         } else {
             next_level()
@@ -269,6 +270,7 @@ function lore_screen() {
     game.showLongText("Con el mundo al borde del colapso, Alex debe abrirse paso entre hordas de zombis", DialogLayout.Bottom)
     game.showLongText("para llegar al último refugio humano donde poder estar a salvo.", DialogLayout.Bottom)
     game.showLongText("¿Podrá salvarse y encontrar una cura?", DialogLayout.Bottom)
+    open_zombie_screen()
 }
 
 function next_level() {
@@ -624,7 +626,8 @@ function create_zombie() {
     zombie_sprite.setVelocity(-zombie_speed, 0)
     zombie_list.push(new Zombie(zombie_sprite, zombie_list.length + 1))
     statusbar = statusbars.create(16, 2, StatusBarKind.EnemyHealth)
-    statusbar.max = 100
+    statusbar.max = zombie_hp
+    statusbar.value = zombie_hp
     statusbar.attachToSprite(zombie_sprite)
 }
 
@@ -1004,7 +1007,7 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function on_a_pressed() {
     if (on_menu == true) {
         on_menu = false
         close_menu()
-        open_zombie_screen()
+        lore_screen()
     } else if (on_zombie_screen == true) {
         on_zombie_screen = false
     }
