@@ -1,4 +1,4 @@
-// meta={"simUrl":"https://trg-arcade.userpxt.io/v1.12.57/---simulator","cdnUrl":"https://pxt.azureedge.net","version":"1.0.2","target":"arcade","targetVersion":"1.12.57","repo":"ezequielgaribotto/zomb"}
+// meta={"simUrl":"https://trg-arcade.userpxt.io/v1.12.57/---simulator","cdnUrl":"https://pxt.azureedge.net","version":"1.0.3","target":"arcade","targetVersion":"1.12.57","repo":"ezequielgaribotto/zomb"}
 // total=2498520 new=10.03% cached=84.92% other=5.05%
 (function (ectx) {
 'use strict';
@@ -705,7 +705,7 @@ const pxsim_pxtrt = pxsim.pxtrt;
 const pxsim_numops = pxsim.numops;
 
 
-function _main___P202359(s) {
+function _main___P203394(s) {
 let r0 = s.r0, step = s.pc;
 s.pc = -1;
 
@@ -1390,13 +1390,13 @@ switch (step) {
     return leave(s, r0)
   default: oops()
 } } }
-_main___P202359.info = {"start":0,"length":0,"line":0,"column":0,"endLine":0,"endColumn":0,"fileName":"pxt_modules/arcade-background-scroll/main.ts","functionName":"<main>","argumentNames":[]}
-_main___P202359.continuations = [ 47,48,49,50 ]
+_main___P203394.info = {"start":0,"length":0,"line":0,"column":0,"endLine":0,"endColumn":0,"fileName":"pxt_modules/arcade-background-scroll/main.ts","functionName":"<main>","argumentNames":[]}
+_main___P203394.continuations = [ 47,48,49,50 ]
 
-function _main___P202359_mk(s) {
+function _main___P203394_mk(s) {
     checkStack(s.depth);
     return {
-        parent: s, fn: _main___P202359, depth: s.depth + 1,
+        parent: s, fn: _main___P203394, depth: s.depth + 1,
         pc: 0, retval: undefined, r0: undefined, overwrittenPC: false, lambdaArgs: null,
   tmp_0: undefined,
   tmp_1: undefined,
@@ -6628,18 +6628,18 @@ switch (step) {
   case 0:
 
     s.z___201575 = undefined;
-    s.unnamed5510___U1 = undefined;
-    s.unnamed5511___U2 = undefined;
+    s.unnamed5618___U1 = undefined;
+    s.unnamed5619___U2 = undefined;
     s.z___201575 = (undefined);
-    s.unnamed5510___U1 = (globals.zombie_list___201037);
-    s.unnamed5511___U2 = (0);
+    s.unnamed5618___U1 = (globals.zombie_list___201037);
+    s.unnamed5619___U2 = (0);
   case 1:
-    s.tmp_0 = r0 = s.unnamed5511___U2;
-    r0 = pxsim_Array__length(s.unnamed5510___U1);
+    s.tmp_0 = r0 = s.unnamed5619___U2;
+    r0 = pxsim_Array__length(s.unnamed5618___U1);
     s.tmp_1 = r0;
     r0 = (s.tmp_0 < s.tmp_1);
     if (!r0) { step = 2; continue; }
-    r0 = pxsim_Array__getAt(s.unnamed5510___U1, s.unnamed5511___U2);
+    r0 = pxsim_Array__getAt(s.unnamed5618___U1, s.unnamed5619___U2);
     s.z___201575 = (r0);
     s.tmp_2 = sprites_destroy__P2278_mk(s);
     r0 = s.z___201575.fields["sprite"];
@@ -6649,11 +6649,11 @@ switch (step) {
     s.callLocIdx = 185; s.pc = 3; return s.tmp_2;
   case 3:
     r0 = s.retval;
-    r0 = (s.unnamed5511___U2 + 1);
-    s.unnamed5511___U2 = (r0);
+    r0 = (s.unnamed5619___U2 + 1);
+    s.unnamed5619___U2 = (r0);
     { step = 1; continue; }
   case 2:
-    s.unnamed5510___U1 = (undefined);
+    s.unnamed5618___U1 = (undefined);
     r0 = undefined;
     return leave(s, r0)
   default: oops()
@@ -6669,8 +6669,8 @@ function destroy_all_zombies__P201317_mk(s) {
   tmp_1: undefined,
   tmp_2: undefined,
   z___201575: undefined,
-  unnamed5510___U1: undefined,
-  unnamed5511___U2: undefined,
+  unnamed5618___U1: undefined,
+  unnamed5619___U2: undefined,
 } }
 
 
@@ -25768,18 +25768,18 @@ switch (step) {
   case 0:
 
     s.b___201515 = undefined;
-    s.unnamed5506___U1 = undefined;
-    s.unnamed5507___U2 = undefined;
+    s.unnamed5614___U1 = undefined;
+    s.unnamed5615___U2 = undefined;
     s.b___201515 = (undefined);
-    s.unnamed5506___U1 = (globals.bullet_list___201035);
-    s.unnamed5507___U2 = (0);
+    s.unnamed5614___U1 = (globals.bullet_list___201035);
+    s.unnamed5615___U2 = (0);
   case 1:
-    s.tmp_0 = r0 = s.unnamed5507___U2;
-    r0 = pxsim_Array__length(s.unnamed5506___U1);
+    s.tmp_0 = r0 = s.unnamed5615___U2;
+    r0 = pxsim_Array__length(s.unnamed5614___U1);
     s.tmp_1 = r0;
     r0 = (s.tmp_0 < s.tmp_1);
     if (!r0) { step = 10; continue; }
-    r0 = pxsim_Array__getAt(s.unnamed5506___U1, s.unnamed5507___U2);
+    r0 = pxsim_Array__getAt(s.unnamed5614___U1, s.unnamed5615___U2);
     s.b___201515 = (r0);
     s.tmp_4 = Sprite_x__P2355_mk(s);
     r0 = s.b___201515.fields["sprite"];
@@ -25886,11 +25886,11 @@ switch (step) {
     r0 = s.retval;
   case 8:
   case 9:
-    r0 = (s.unnamed5507___U2 + 1);
-    s.unnamed5507___U2 = (r0);
+    r0 = (s.unnamed5615___U2 + 1);
+    s.unnamed5615___U2 = (r0);
     { step = 1; continue; }
   case 10:
-    s.unnamed5506___U1 = (undefined);
+    s.unnamed5614___U1 = (undefined);
     r0 = undefined;
     return leave(s, r0)
   default: oops()
@@ -25934,8 +25934,8 @@ function destroy_bullets__P201281_mk(s) {
   tmp_29: undefined,
   tmp_30: undefined,
   b___201515: undefined,
-  unnamed5506___U1: undefined,
-  unnamed5507___U2: undefined,
+  unnamed5614___U1: undefined,
+  unnamed5615___U2: undefined,
 } }
 
 
@@ -25953,18 +25953,18 @@ switch (step) {
   case 0:
 
     s.z___201560 = undefined;
-    s.unnamed5508___U1 = undefined;
-    s.unnamed5509___U2 = undefined;
+    s.unnamed5616___U1 = undefined;
+    s.unnamed5617___U2 = undefined;
     s.z___201560 = (undefined);
-    s.unnamed5508___U1 = (globals.zombie_list___201037);
-    s.unnamed5509___U2 = (0);
+    s.unnamed5616___U1 = (globals.zombie_list___201037);
+    s.unnamed5617___U2 = (0);
   case 1:
-    s.tmp_0 = r0 = s.unnamed5509___U2;
-    r0 = pxsim_Array__length(s.unnamed5508___U1);
+    s.tmp_0 = r0 = s.unnamed5617___U2;
+    r0 = pxsim_Array__length(s.unnamed5616___U1);
     s.tmp_1 = r0;
     r0 = (s.tmp_0 < s.tmp_1);
     if (!r0) { step = 4; continue; }
-    r0 = pxsim_Array__getAt(s.unnamed5508___U1, s.unnamed5509___U2);
+    r0 = pxsim_Array__getAt(s.unnamed5616___U1, s.unnamed5617___U2);
     s.z___201560 = (r0);
     s.tmp_4 = Sprite_x__P2355_mk(s);
     r0 = s.z___201560.fields["sprite"];
@@ -25987,11 +25987,11 @@ switch (step) {
     r0 = s.retval;
   case 2:
   case 3:
-    r0 = (s.unnamed5509___U2 + 1);
-    s.unnamed5509___U2 = (r0);
+    r0 = (s.unnamed5617___U2 + 1);
+    s.unnamed5617___U2 = (r0);
     { step = 1; continue; }
   case 4:
-    s.unnamed5508___U1 = (undefined);
+    s.unnamed5616___U1 = (undefined);
     r0 = undefined;
     return leave(s, r0)
   default: oops()
@@ -26010,8 +26010,8 @@ function destroy_zombies__P201279_mk(s) {
   tmp_4: undefined,
   tmp_5: undefined,
   z___201560: undefined,
-  unnamed5508___U1: undefined,
-  unnamed5509___U2: undefined,
+  unnamed5616___U1: undefined,
+  unnamed5617___U2: undefined,
 } }
 
 
@@ -82891,5 +82891,5 @@ const sprites_BaseSpriteSayRenderer__C2260_VT = mkVTable({
 
 const breakpoints = setupDebugger(1, ["projectile___201103","enemy___201106","player___201109","zombie_xp_reward___201066","player_exp___201071","player_power___201079","zombie_stun_speed___201054","zombie_stun_duration___201052","zombie_speed___201050","on_menu___201083","player_sprite___201030","direction___201067","on_lore_screen___201087","skip_lore_sprite___201044","on_zombie_screen___201085","player_level___201069","player_exp_required___201073","delay_min_enemies___201046","delay_max_enemies___201048","zombie_list___201037","ypos_zombie_sprite___201064","zombie_sprite___201032","RIGHT_BOUNDARY___201091","statusbar___201099","zombie_hp___201056","bullet_list___201035","LEFT_BOUNDARY___201093","BOTTOM_BOUNDARY___201095","TOP_BOUNDARY___201097","zombie_power___201058","player_hp___201077","player_speed___201081","title_sprite___201040","text_sprite___201042","xpos_bullet___201062","ypos_bullet___201060","bullet_sprite___201034"])
 
-return _main___P202359
+return _main___P203394
 })
