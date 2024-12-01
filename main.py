@@ -324,13 +324,17 @@ def gamer():
     global delay_min_enemies, delay_max_enemies, player_exp, player_exp_required, player_hp
     update_exp_status_bar()
     while player_exp < player_exp_required and info.life() > 0:
+        if (on_stats_screen):
+            return
         pause(randint(delay_min_enemies, delay_max_enemies))
+
         destroy_zombies()
         destroy_bullets()
         if player_exp < player_exp_required and info.life() > 0:
             create_zombie()
         else:
             next_level()
+
 
 
 
@@ -359,18 +363,19 @@ def on_life_zero():
 info.on_life_zero(on_life_zero)
 
 def game_over():
-    global player_level, on_stats_screen
-    if (player_level >= 11):
-        game.splash("Game Over", "You have reached the max level!")
-    else:
-        game.splash("Game Over", "You died")
+    global on_stats_screen
     on_stats_screen = True
     story.start_cutscene(stats_cutscene)
 
 def stats_screen():
+    global player_level, on_stats_screen
     stat_missed_shots = stat_shots - stat_accurate_shots
     stat_precission = (stat_accurate_shots / stat_shots) * 100 if stat_shots > 0 else 0
     story.set_page_pause_length(0, 1000)
+    if (player_level >= 11):
+        game.splash("Game Over", "You have reached the max level!")
+    else:
+        game.splash("Game Over", "You died")
     story.print_dialog("Balas disparadas: " + str(stat_shots), 80, 90, 50, 150)
     story.print_dialog("Balas acertadas: " + str(stat_accurate_shots), 80, 90, 50, 150)
     story.print_dialog("Precisión: " + str(stat_precission) + "%", 80, 90, 50, 150)
@@ -1253,7 +1258,6 @@ def on_a_pressed():
         on_zombie_screen = False
     elif on_stats_screen == True:
         story.clear_all_text()
-        skip_lore()
 controller.A.on_event(ControllerButtonEvent.PRESSED, on_a_pressed)
 
 # Related functions to button A

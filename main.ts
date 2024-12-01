@@ -310,6 +310,10 @@ function gamer() {
     
     update_exp_status_bar()
     while (player_exp < player_exp_required && info.life() > 0) {
+        if (on_stats_screen) {
+            return
+        }
+        
         pause(randint(delay_min_enemies, delay_max_enemies))
         destroy_zombies()
         destroy_bullets()
@@ -353,20 +357,21 @@ info.onLifeZero(function on_life_zero() {
 })
 function game_over() {
     
+    on_stats_screen = true
+    story.startCutscene(stats_cutscene)
+}
+
+function stats_screen() {
+    
+    let stat_missed_shots = stat_shots - stat_accurate_shots
+    let stat_precission = stat_shots > 0 ? stat_accurate_shots / stat_shots * 100 : 0
+    story.setPagePauseLength(0, 1000)
     if (player_level >= 11) {
         game.splash("Game Over", "You have reached the max level!")
     } else {
         game.splash("Game Over", "You died")
     }
     
-    on_stats_screen = true
-    story.startCutscene(stats_cutscene)
-}
-
-function stats_screen() {
-    let stat_missed_shots = stat_shots - stat_accurate_shots
-    let stat_precission = stat_shots > 0 ? stat_accurate_shots / stat_shots * 100 : 0
-    story.setPagePauseLength(0, 1000)
     story.printDialog("Balas disparadas: " + ("" + stat_shots), 80, 90, 50, 150)
     story.printDialog("Balas acertadas: " + ("" + stat_accurate_shots), 80, 90, 50, 150)
     story.printDialog("Precisión: " + ("" + stat_precission) + "%", 80, 90, 50, 150)
@@ -1227,7 +1232,6 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function on_a_pressed() {
         on_zombie_screen = false
     } else if (on_stats_screen == true) {
         story.clearAllText()
-        skip_lore()
     }
     
 })
