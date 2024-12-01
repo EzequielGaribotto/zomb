@@ -295,7 +295,23 @@ function initialize_game_data() {
     effects.starField.startScreenEffect()
     scroller.setCameraScrollingMultipliers(1, 0)
     game.onUpdate(function on_on_update() {
-        scene.centerCameraAt(player_sprite.x + 40, 60)
+        scene.centerCameraAt(player_sprite.x + 50, 60)
+        if (player_sprite.x < 0) {
+            player_sprite.x = 0
+        }
+        
+        if (player_sprite.x > screen.width) {
+            player_sprite.x = screen.width
+        }
+        
+        if (player_sprite.y < 20) {
+            player_sprite.y = 20
+        }
+        
+        if (player_sprite.y > screen.height) {
+            player_sprite.y = screen.height
+        }
+        
     })
     info.setLife(3)
 }
