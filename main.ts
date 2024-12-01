@@ -295,7 +295,7 @@ function initialize_game_data() {
     effects.starField.startScreenEffect()
     scroller.setCameraScrollingMultipliers(1, 0)
     game.onUpdate(function on_on_update() {
-        scene.centerCameraAt(player_sprite.x, 60)
+        scene.centerCameraAt(player_sprite.x + 40, 60)
     })
     info.setLife(3)
 }

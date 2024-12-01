@@ -1235,4 +1235,4 @@ def animate_bullet_collision(bullet):
     sprites.destroy(bullet)
 
 def on_on_update():
-    scene.center_camera_at(player_sprite.x, 60)
+    scene.center_camera_at(player_sprite.x+40, 60)
