@@ -338,7 +338,7 @@ def next_level():
     gamer()
 
 def set_player_stats(level: int):
-    global player_hp, player_power, player_speed, player_exp_required, stat_lifes_won
+    global player_hp, player_power, player_speed, player_exp_required, stat_lifes_won, player_exp_punish
     if info.life() < 3:
         info.change_life_by(+1)
         stat_lifes_won += 1
@@ -347,13 +347,15 @@ def set_player_stats(level: int):
         "hp": 100 + (level - 1) * 50,
         "power": 50 + (level - 1) * 10,
         "speed": 200 + (level - 1) * 10,
-        "exp_required": 100 * level
+        "exp_required": 100 * level,
+        "exp_punish": level
     }
 
     player_hp = stats["hp"]
     player_power = stats["power"]
     player_speed = stats["speed"]
     player_exp_required = stats["exp_required"]
+    player_exp_punish = stats["exp_punish"]
 
 
 def set_zombie_stats(level: int):
@@ -415,7 +417,7 @@ def destroy_all_bullets():
         sprites.destroy(b.sprite)
 
 def update_exp_status_bar():
-    global player_exp_required, player_exp
+    global player_exp_required, player_exp, exp_status_bar
     exp_status_bar.max = player_exp_required
     exp_status_bar.value = player_exp
     exp_status_bar.set_label("EXP: "+ player_exp + "/" + player_exp_required)

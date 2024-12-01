@@ -361,12 +361,14 @@ function set_player_stats(level: number) {
         "power" : 50 + (level - 1) * 10,
         "speed" : 200 + (level - 1) * 10,
         "exp_required" : 100 * level,
+        "exp_punish" : level,
     }
     
     player_hp = stats["hp"]
     player_power = stats["power"]
     player_speed = stats["speed"]
     player_exp_required = stats["exp_required"]
+    player_exp_punish = stats["exp_punish"]
 }
 
 function set_zombie_stats(level: number) {
