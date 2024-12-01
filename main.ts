@@ -6,12 +6,16 @@ let bullet_sprite : Sprite = null
 //  Sprite lists
 let bullet_list : Bullet[] = []
 let zombie_list : Zombie[] = []
+let deleted_zombies_list : Zombie[] = []
 //  Status bar Sprites
 let exp_status_bar : StatusBarSprite = null
+let statusbar : StatusBarSprite = null
+//  Zombie sb
 //  Text Sprites
 let title_sprite : TextSprite = null
 let text_sprite : TextSprite = null
 let skip_lore_sprite : TextSprite = null
+let skip_stats_sprite : TextSprite = null
 //  Enemies stats
 let delay_min_enemies = 0
 let delay_max_enemies = 0
@@ -34,18 +38,28 @@ let player_points = 0
 let player_hp = 0
 let player_power = 0
 let player_speed = 0
+let player_exp_punish = 0
 //  Booleans
 let on_menu = true
 let on_zombie_screen = false
 let on_lore_screen = false
-let next_lore = false
+let on_stats_screen = false
 //  CONSTANTS
 //  Boundaries
 let RIGHT_BOUNDARY = 160
 let LEFT_BOUNDARY = 0
 let BOTTOM_BOUNDARY = 120
 let TOP_BOUNDARY = 0
-let statusbar : StatusBarSprite = null
+//  Stats to Display
+let stat_shots = 0
+let stat_missed_shots = 0
+let stat_precission = 0
+let stat_accurate_shots = 0
+let stat_zombies_escaped = 0
+let stat_zombies_killed = 0
+let stat_damage_dealt = 0
+let stat_lifes_won = 0
+let stat_lifes_lost = 0
 //  main
 open_main_screen()
 namespace SpriteKind {
@@ -57,11 +71,14 @@ namespace SpriteKind {
 statusbars.onZero(StatusBarKind.EnemyHealth, function on_on_zero(status: StatusBarSprite) {
     
     status.spriteAttachedTo().destroy(effects.disintegrate)
+    stat_zombies_killed += 1
     player_exp += zombie_xp_reward
     update_exp_status_bar()
 })
 sprites.onOverlap(SpriteKind.projectile, SpriteKind.enemy, function on_projectile_collision(bullet: Sprite, zombie: Sprite) {
     
+    stat_accurate_shots += 1
+    stat_damage_dealt += player_power
     animate_bullet_collision(bullet)
     statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, zombie).value += -player_power
     zombie.setVelocity(-zombie_stun_speed, 0)
@@ -71,6 +88,7 @@ sprites.onOverlap(SpriteKind.projectile, SpriteKind.enemy, function on_projectil
 sprites.onOverlap(SpriteKind.player, SpriteKind.enemy, function on_player_collision_with_enemy(player: Sprite, zombie: Sprite) {
     
     info.changeLifeBy(-1)
+    stat_lifes_lost += 1
     zombie.destroy()
     scene.cameraShake(4, 500)
 })
@@ -94,22 +112,22 @@ function open_main_screen() {
 //  Related functions to main screen
 function create_title_sprite() {
     
-    title_sprite = textsprite.create("Zombie Game")
-    title_sprite.setMaxFontHeight(12)
-    title_sprite.setOutline(1, 15)
-    title_sprite.setPosition(82, 43)
+    title_sprite = textsprite.create("Zomb")
+    title_sprite.setMaxFontHeight(20)
+    title_sprite.setOutline(3, 14)
+    title_sprite.setPosition(82, 20)
 }
 
 function bottom_text_sprite() {
     
-    text_sprite = textsprite.create("Press A to start the game")
-    text_sprite.setOutline(0.2, 1)
+    text_sprite = textsprite.create("Apreta A para jugar")
+    text_sprite.setOutline(0.2, 5)
     text_sprite.setPosition(80, 110)
 }
 
 function create_skip_lore_sprite() {
     
-    skip_lore_sprite = textsprite.create("Press A to Skip Lore")
+    skip_lore_sprite = textsprite.create("Apreta A para skipear lore")
     skip_lore_sprite.setOutline(0.2, 1)
     skip_lore_sprite.setPosition(80, 110)
 }
@@ -312,6 +330,12 @@ function next_level() {
     
     if (player_level == 11) {
         game_over()
+        return
+    }
+    
+    if (info.life() == 0) {
+        game_over()
+        return
     }
     
     player_exp = 0
@@ -321,7 +345,6 @@ function next_level() {
     game.splash("Level Up! - " + player_level)
     destroy_all_zombies()
     destroy_all_bullets()
-    player_sprite.setPosition(10, 60)
     gamer()
 }
 
@@ -336,17 +359,44 @@ function game_over() {
         game.splash("Game Over", "You died")
     }
     
-    stats_screen()
-    game.over()
+    on_stats_screen = true
+    story.startCutscene(stats_cutscene)
 }
 
 function stats_screen() {
-    game.splash("Stats")
+    let stat_missed_shots = stat_shots - stat_accurate_shots
+    let stat_precission = stat_shots > 0 ? stat_accurate_shots / stat_shots * 100 : 0
+    story.setPagePauseLength(0, 1000)
+    story.printDialog("Balas disparadas: " + ("" + stat_shots), 80, 90, 50, 150)
+    story.printDialog("Balas acertadas: " + ("" + stat_accurate_shots), 80, 90, 50, 150)
+    story.printDialog("Precisión: " + ("" + stat_precission) + "%", 80, 90, 50, 150)
+    story.printDialog("Zombis eliminados: " + ("" + stat_zombies_killed), 80, 90, 50, 150)
+    story.printDialog("Zombis que escaparon: " + ("" + stat_zombies_escaped), 80, 90, 50, 150)
+    story.printDialog("Daño infligido: " + ("" + stat_damage_dealt), 80, 90, 50, 150)
+    story.printDialog("Vidas ganadas: " + ("" + stat_lifes_won), 80, 90, 50, 150)
+    story.printDialog("Vidas perdidas: " + ("" + stat_lifes_lost), 80, 90, 50, 150)
+    if (player_level == 11) {
+        story.printDialog("¡Felicidades, Alex! Has alcanzado el refugio humano.", 80, 90, 50, 150)
+        story.printDialog("Gracias a tu ingenio, los supervivientes ahora tienen una oportunidad.", 80, 90, 50, 150)
+        story.printDialog("Con tu Micro:bit, comenzará la investigación para encontrar una cura.", 80, 90, 50, 150)
+        story.printDialog("El destino de la humanidad está en buenas manos.", 80, 90, 50, 150)
+    } else {
+        story.printDialog("Alex ha caído en su lucha contra las hordas de zombis.", 80, 90, 50, 150)
+        story.printDialog("Aunque su esfuerzo fue valiente, los zombis han tomado el control.", 80, 90, 50, 150)
+        story.printDialog("El refugio humano sigue siendo un sueño distante...", 80, 90, 50, 150)
+        story.printDialog("¿Podrá la humanidad encontrar una nueva esperanza?", 80, 90, 50, 150)
+    }
+    
+    game.over()
 }
 
 function set_player_stats(level: number) {
     
-    //  depending on the level, the player will upgrade different stats
+    if (info.life() < 3) {
+        info.changeLifeBy(+1)
+        stat_lifes_won += 1
+    }
+    
     if (level == 1) {
         player_hp = 100
         player_power = 50
@@ -362,10 +412,6 @@ function set_player_stats(level: number) {
         player_power = 70
         player_speed = 220
         player_exp_required = 300
-        if (info.life() < 3) {
-            info.changeLifeBy(+1)
-        }
-        
     } else if (level == 4) {
         player_hp = 250
         player_power = 80
@@ -381,10 +427,6 @@ function set_player_stats(level: number) {
         player_power = 100
         player_speed = 250
         player_exp_required = 600
-        if (info.life() < 3) {
-            info.changeLifeBy(+1)
-        }
-        
     } else if (level == 7) {
         player_hp = 400
         player_power = 110
@@ -400,10 +442,6 @@ function set_player_stats(level: number) {
         player_power = 130
         player_speed = 280
         player_exp_required = 900
-        if (info.life() < 3) {
-            info.changeLifeBy(+1)
-        }
-        
     } else if (level == 10) {
         player_hp = 550
         player_power = 140
@@ -415,7 +453,6 @@ function set_player_stats(level: number) {
 
 function set_zombie_stats(level: number) {
     
-    //  depending on the level, the zombie will upgrade different stats
     if (level == 1) {
         zombie_hp = 100
         zombie_power = 50
@@ -523,10 +560,20 @@ function destroy_bullets() {
 
 function destroy_zombies() {
     
-    
     for (let z of zombie_list) {
-        if (z.sprite.x < LEFT_BOUNDARY) {
+        if (z.sprite.x < LEFT_BOUNDARY && deleted_zombies_list.indexOf(z) < 0) {
             sprites.destroy(z.sprite, effects.disintegrate)
+            if (player_exp > 0) {
+                player_exp -= player_exp_punish
+                if (player_exp < 0) {
+                    player_exp = 0
+                }
+                
+            }
+            
+            deleted_zombies_list.push(z)
+            stat_zombies_escaped += 1
+            update_exp_status_bar()
         }
         
     }
@@ -1100,7 +1147,7 @@ controller.down.onEvent(ControllerButtonEvent.Released, function on_down_release
 })
 //  Button B
 controller.B.onEvent(ControllerButtonEvent.Pressed, function on_b_pressed() {
-    if (on_menu) {
+    if (on_menu || on_lore_screen || info.life() == 0) {
         
     } else {
         shot()
@@ -1124,6 +1171,7 @@ function shot() {
         bullet_sprite.setVelocity(200, 0)
     }
     
+    stat_shots += 1
 }
 
 function create_bullet(): Sprite {
@@ -1151,6 +1199,10 @@ function create_bullet(): Sprite {
     return bullet_sprite
 }
 
+function stats_cutscene() {
+    stats_screen()
+}
+
 //  Button A
 controller.A.onEvent(ControllerButtonEvent.Pressed, function on_a_pressed() {
     
@@ -1159,19 +1211,23 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function on_a_pressed() {
         close_menu()
         story.startCutscene(function lore_cutscene() {
             lore_screen()
+            story.startCutscene(function zombie_cutscene() {
+                
+                sprites.destroy(skip_lore_sprite)
+                open_zombie_screen()
+                story.startCutscene(stats_cutscene)
+            })
         })
         on_lore_screen = true
     } else if (on_lore_screen == true) {
         story.clearAllText()
         skip_lore()
-        story.startCutscene(function zombie_cutscene() {
-            
-            open_zombie_screen()
-            sprites.destroy(skip_lore_sprite)
-        })
     } else if (on_zombie_screen == true) {
         story.cancelCurrentCutscene()
         on_zombie_screen = false
+    } else if (on_stats_screen == true) {
+        story.clearAllText()
+        skip_lore()
     }
     
 })
