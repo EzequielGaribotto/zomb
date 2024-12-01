@@ -73,49 +73,28 @@ stat_damage_dealt = 0
 stat_lifes_won = 0
 stat_lifes_lost = 0
 
-# main
-open_main_screen()
+# Classes
 @namespace
 class SpriteKind:
     projectile = SpriteKind.create()
     enemy = SpriteKind.create()
     player = SpriteKind.create()
-    
-def on_projectile_collision(bullet, zombie):
-    global player_power, zombie_hp, player_exp, zombie_xp_reward, zombie_stun_speed, zombie_stun_duration, stat_accurate_shots, stat_damage_dealt
-    stat_accurate_shots+=1
-    stat_damage_dealt+=player_power
-    animate_bullet_collision(bullet)
-    statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, zombie).value += -player_power
-    zombie.set_velocity(-zombie_stun_speed, 0)
-    pause(zombie_stun_duration)
-    zombie.set_velocity(-zombie_speed, 0)
 
+class Bullet:
+    def __init__(self, sprite: Sprite, bullet_id: Number):
+        self.bullet_id = bullet_id
+        self.sprite: Sprite = sprite
 
-def on_on_zero(status):
-    global player_power, zombie_hp, player_exp, zombie_xp_reward, player_exp_required, stat_zombies_killed
-    status.sprite_attached_to().destroy(effects.disintegrate)
-    stat_zombies_killed+=1
-    player_exp += zombie_xp_reward
-    update_exp_status_bar()
-statusbars.on_zero(StatusBarKind.enemy_health, on_on_zero)
+class Zombie:
+    def __init__(self, sprite: Sprite, zombie_id: Number):
+        self.zombie_id = zombie_id
+        self.sprite: Sprite = sprite
 
-sprites.on_overlap(SpriteKind.projectile,
-    SpriteKind.enemy,
-    on_projectile_collision)
-
-def on_player_collision_with_enemy(player, zombie):
-    global zombie_power, player_hp, stat_lifes_lost
-    info.change_life_by(-1)
-    stat_lifes_lost+=1
-    zombie.destroy()
-    scene.camera_shake(4, 500)
-sprites.on_overlap(SpriteKind.player,
-    SpriteKind.enemy,
-    on_player_collision_with_enemy)
+# main
+open_main_screen()
 
 # Screens
-# Main screen
+# Pantalla principal
 def open_main_screen():
     global on_menu
     on_menu = True
@@ -127,8 +106,6 @@ def open_main_screen():
         bottom_text_sprite()
     else:
         pass
-
-# Related functions to main screen
 def create_title_sprite():
     global title_sprite
     title_sprite = textsprite.create("Zomb")
@@ -142,11 +119,10 @@ def bottom_text_sprite():
     text_sprite.set_outline(0.2, 5)
     text_sprite.set_position(80, 110)
 
-def create_skip_lore_sprite():
-    global skip_lore_sprite
-    skip_lore_sprite = textsprite.create("Apreta A para skipear lore")
-    skip_lore_sprite.set_outline(0.2, 1)
-    skip_lore_sprite.set_position(80, 110)
+# Pantalla de lore
+def lore_cutscene():
+    lore_screen()
+    story.start_cutscene(zombie_cutscene)
 
 def lore_screen():
     global on_lore_screen, on_menu
@@ -285,15 +261,28 @@ def lore_screen():
     story.print_dialog("Con el mundo al borde del colapso, Alex debe abrirse paso entre hordas de zombis", 80, 90, 50, 150)
     story.print_dialog("para llegar al último refugio humano donde poder estar a salvo.", 80, 90, 50, 150)
     story.print_dialog("¿Podrá salvarse y encontrar una cura?", 80, 90, 50, 150)
+    
+def create_skip_lore_sprite():
+    global skip_lore_sprite
+    skip_lore_sprite = textsprite.create("Apreta A para skipear lore")
+    skip_lore_sprite.set_outline(0.2, 1)
+    skip_lore_sprite.set_position(80, 110)
+    
+def zombie_cutscene():
+    global skip_lore_sprite
+    sprites.destroy(skip_lore_sprite)
+    open_zombie_screen()
+    story.start_cutscene(stats_cutscene)
 
-
-
-
-# First screen
+# Pantalla de juego
 def open_zombie_screen():
+    initialize_game_data()
+    gamer()
+
+def initialize_game_data():
     scene.set_background_image(assets.image("""
-                cityscape
-            """))
+            cityscape
+        """))
     global on_zombie_screen, on_menu, ypos_zombie_sprite, player_level, on_lore_screen, skip_lore_sprite, exp_status_bar, player_exp, player_exp_required
     on_zombie_screen = True
     on_menu = False
@@ -312,14 +301,8 @@ def open_zombie_screen():
     scroller.set_camera_scrolling_multipliers(1, 0)
     game.on_update(on_on_update)
     info.set_life(3)
-    gamer()
 
-def update_exp_status_bar():
-    global player_exp_required, player_exp
-    exp_status_bar.max = player_exp_required
-    exp_status_bar.value = player_exp
-    exp_status_bar.set_label("EXP: "+ player_exp + "/" + player_exp_required)
-
+# Funcion recursiva para crear zombies en funcion del nivel
 def gamer():
     global delay_min_enemies, delay_max_enemies, player_exp, player_exp_required, player_hp
     update_exp_status_bar()
@@ -335,222 +318,68 @@ def gamer():
         else:
             next_level()
 
-
-
-
 def next_level():
-    global player_level, player_exp, player_exp_required, player_hp, player_power, zombie_hp, zombie_power, zombie_speed
+    global player_level, player_exp
     if (info.life() > 0):
         player_level += 1
-    if (player_level == 11):
+    if (player_level == 11): # Caso base 1
         game_over()
         return
-    if (info.life() == 0):
+    if (info.life() == 0): # Caso base 2
         game_over()
         return
     player_exp = 0
     update_exp_status_bar()
     set_zombie_stats(player_level)
     set_player_stats(player_level)
-    
     game.splash("Level Up! - " + player_level)
     destroy_all_zombies()
     destroy_all_bullets()
     gamer()
 
-def on_life_zero():
-    game_over()
-info.on_life_zero(on_life_zero)
-
-def game_over():
-    global on_stats_screen
-    on_stats_screen = True
-    story.start_cutscene(stats_cutscene)
-
-def stats_screen():
-    global player_level, on_stats_screen
-    stat_missed_shots = stat_shots - stat_accurate_shots
-    stat_precission = (stat_accurate_shots / stat_shots) * 100 if stat_shots > 0 else 0
-    story.set_page_pause_length(0, 1000)
-    if (player_level >= 11):
-        game.splash("Game Over", "You have reached the max level!")
-    else:
-        game.splash("Game Over", "You died")
-    story.print_dialog("Balas disparadas: " + str(stat_shots), 80, 90, 50, 150)
-    story.print_dialog("Balas acertadas: " + str(stat_accurate_shots), 80, 90, 50, 150)
-    story.print_dialog("Precisión: " + str(stat_precission) + "%", 80, 90, 50, 150)
-    story.print_dialog("Zombis eliminados: " + str(stat_zombies_killed), 80, 90, 50, 150)
-    story.print_dialog("Zombis que escaparon: " + str(stat_zombies_escaped), 80, 90, 50, 150)
-    story.print_dialog("Daño infligido: " + str(stat_damage_dealt), 80, 90, 50, 150)
-    story.print_dialog("Vidas ganadas: " + str(stat_lifes_won), 80, 90, 50, 150)
-    story.print_dialog("Vidas perdidas: " + str(stat_lifes_lost), 80, 90, 50, 150)
-
-    if player_level == 11:
-        story.print_dialog("¡Felicidades, Alex! Has alcanzado el refugio humano.", 80, 90, 50, 150)
-        story.print_dialog("Gracias a tu ingenio, los supervivientes ahora tienen una oportunidad.", 80, 90, 50, 150)
-        story.print_dialog("Con tu Micro:bit, comenzará la investigación para encontrar una cura.", 80, 90, 50, 150)
-        story.print_dialog("El destino de la humanidad está en buenas manos.", 80, 90, 50, 150)
-    else:
-        story.print_dialog("Alex ha caído en su lucha contra las hordas de zombis.", 80, 90, 50, 150)
-        story.print_dialog("Aunque su esfuerzo fue valiente, los zombis han tomado el control.", 80, 90, 50, 150)
-        story.print_dialog("El refugio humano sigue siendo un sueño distante...", 80, 90, 50, 150)
-        story.print_dialog("¿Podrá la humanidad encontrar una nueva esperanza?", 80, 90, 50, 150)
-    game.over()
-    
-
-def set_player_stats(level: number):
-    global player_hp, player_power, player_speed, player_exp_required, exp_status_bar, stat_lifes_won
-    if (info.life() < 3):
+def set_player_stats(level: int):
+    global player_hp, player_power, player_speed, player_exp_required, stat_lifes_won
+    if info.life() < 3:
         info.change_life_by(+1)
         stat_lifes_won += 1
-    if level == 1:
-        player_hp = 100
-        player_power = 50
-        player_speed = 200
-        player_exp_required = 100
-    elif level == 2:
-        player_hp = 150
-        player_power = 60
-        player_speed = 210
-        player_exp_required = 200
-    elif level == 3:
-        player_hp = 200
-        player_power = 70
-        player_speed = 220
-        player_exp_required = 300
-    elif level == 4:
-        player_hp = 250
-        player_power = 80
-        player_speed = 230
-        player_exp_required = 400
-    elif level == 5:
-        player_hp = 300
-        player_power = 90
-        player_speed = 240
-        player_exp_required = 500
-    elif level == 6:
-        player_hp = 350
-        player_power = 100
-        player_speed = 250
-        player_exp_required = 600
-    elif level == 7:
-        player_hp = 400
-        player_power = 110
-        player_speed = 260
-        player_exp_required = 700
-    elif level == 8:
-        player_hp = 450
-        player_power = 120
-        player_speed = 270
-        player_exp_required = 800
-    elif level == 9:
-        player_hp = 500
-        player_power = 130
-        player_speed = 280
-        player_exp_required = 900
-    elif level == 10:
-        player_hp = 550
-        player_power = 140
-        player_speed = 290
-        player_exp_required = 1000
 
-def set_zombie_stats(level: number):
-    global zombie_hp, zombie_power, zombie_speed, delay_min_enemies, delay_max_enemies, zombie_xp_reward, zombie_stun_speed, zombie_stun_duration
-    if level == 1:
-        zombie_hp = 100
-        zombie_power = 50
-        zombie_speed = 35
-        delay_min_enemies = 1000
-        delay_max_enemies = 1500
-        zombie_xp_reward = 50
-        zombie_stun_duration = 2000
-        zombie_stun_speed = 10
-    elif level == 2:
-        zombie_hp = 150
-        zombie_power = 60
-        zombie_speed = 40
-        delay_min_enemies = 900
-        delay_max_enemies = 1400
-        zombie_xp_reward = 50
-        zombie_stun_duration = 1800
-        zombie_stun_speed = 12
-    elif level == 3:
-        zombie_hp = 200
-        zombie_power = 70
-        zombie_speed = 45
-        delay_min_enemies = 800
-        delay_max_enemies = 1300
-        zombie_xp_reward = 50
-        zombie_stun_duration = 1600
-        zombie_stun_speed = 14
-    elif level == 4:
-        zombie_hp = 250
-        zombie_power = 80
-        zombie_speed = 50
-        delay_min_enemies = 700
-        delay_max_enemies = 1200
-        zombie_xp_reward = 50
-        zombie_stun_duration = 1400
-        zombie_stun_speed = 16
-    elif level == 5:
-        zombie_hp = 300
-        zombie_power = 90
-        zombie_speed = 55
-        delay_min_enemies = 600
-        delay_max_enemies = 1100
-        zombie_xp_reward = 50
-        zombie_stun_duration = 1200
-        zombie_stun_speed = 18
+    stats = {
+        "hp": 100 + (level - 1) * 50,
+        "power": 50 + (level - 1) * 10,
+        "speed": 200 + (level - 1) * 10,
+        "exp_required": 100 * level
+    }
 
-    elif level == 6:
-        zombie_hp = 350
-        zombie_power = 100
-        zombie_speed = 60
-        delay_min_enemies = 500
-        delay_max_enemies = 1000
-        zombie_xp_reward = 50
-        zombie_stun_duration = 1000
-        zombie_stun_speed = 20
+    player_hp = stats["hp"]
+    player_power = stats["power"]
+    player_speed = stats["speed"]
+    player_exp_required = stats["exp_required"]
 
-    elif level == 7:
-        zombie_hp = 400
-        zombie_power = 110
-        zombie_speed = 65
-        delay_min_enemies = 400
-        delay_max_enemies = 900
-        zombie_xp_reward = 50
-        zombie_stun_duration = 800
-        zombie_stun_speed = 22
 
-    elif level == 8:
-        zombie_hp = 450
-        zombie_power = 120
-        zombie_speed = 70
-        delay_min_enemies = 300
-        delay_max_enemies = 800
-        zombie_xp_reward = 50
-        zombie_stun_duration = 600
-        zombie_stun_speed = 24
+def set_zombie_stats(level: int):
+    global zombie_hp, zombie_power, zombie_speed, delay_min_enemies, delay_max_enemies
+    global zombie_xp_reward, zombie_stun_speed, zombie_stun_duration
 
-    elif level == 9:
-        zombie_hp = 500
-        zombie_power = 130
-        zombie_speed = 75
-        delay_min_enemies = 200
-        delay_max_enemies = 700
-        zombie_xp_reward = 50
-        zombie_stun_duration = 400
-        zombie_stun_speed = 26
+    stats = {
+        "hp": 100 + (level - 1) * 50,
+        "power": 50 + (level - 1) * 10,
+        "speed": 35 + (level - 1) * 5,
+        "delay_min": max(1000 - (level - 1) * 100, 100),
+        "delay_max": max(1500 - (level - 1) * 100, 600),
+        "xp_reward": 50,
+        "stun_duration": max(2000 - (level - 1) * 200, 200),
+        "stun_speed": 10 + (level - 1) * 2
+    }
 
-    elif level == 10:
-        zombie_hp = 550
-        zombie_power = 140
-        zombie_speed = 80
-        delay_min_enemies = 100
-        delay_max_enemies = 600
-        zombie_xp_reward = 50
-        zombie_stun_duration = 200
-        zombie_stun_speed = 28
+    zombie_hp = stats["hp"]
+    zombie_power = stats["power"]
+    zombie_speed = stats["speed"]
+    delay_min_enemies = stats["delay_min"]
+    delay_max_enemies = stats["delay_max"]
+    zombie_xp_reward = stats["xp_reward"]
+    zombie_stun_duration = stats["stun_duration"]
+    zombie_stun_speed = stats["stun_speed"]
+
 
 def destroy_bullets():
     global bullet_list
@@ -585,15 +414,82 @@ def destroy_all_bullets():
     for b in bullet_list:
         sprites.destroy(b.sprite)
 
-class Bullet:
-    def __init__(self, sprite: Sprite, bullet_id: Number):
-        self.bullet_id = bullet_id
-        self.sprite: Sprite = sprite
+def update_exp_status_bar():
+    global player_exp_required, player_exp
+    exp_status_bar.max = player_exp_required
+    exp_status_bar.value = player_exp
+    exp_status_bar.set_label("EXP: "+ player_exp + "/" + player_exp_required)
 
-class Zombie:
-    def __init__(self, sprite: Sprite, zombie_id: Number):
-        self.zombie_id = zombie_id
-        self.sprite: Sprite = sprite
+def game_over():
+    global on_stats_screen
+    on_stats_screen = True
+    story.start_cutscene(stats_cutscene)
+
+def stats_cutscene():
+    stats_screen()
+    game.over()
+
+def stats_screen():
+    global player_level, on_stats_screen
+    stat_missed_shots = stat_shots - stat_accurate_shots
+    stat_precission = (stat_accurate_shots / stat_shots) * 100 if stat_shots > 0 else 0
+    story.set_page_pause_length(0, 1000)
+    if (player_level >= 11):
+        game.splash("Game Over", "You have reached the max level!")
+    else:
+        game.splash("Game Over", "You died")
+    story.print_dialog("Balas disparadas: " + str(stat_shots), 80, 90, 50, 150)
+    story.print_dialog("Balas acertadas: " + str(stat_accurate_shots), 80, 90, 50, 150)
+    story.print_dialog("Precisión: " + str(stat_precission) + "%", 80, 90, 50, 150)
+    story.print_dialog("Zombis eliminados: " + str(stat_zombies_killed), 80, 90, 50, 150)
+    story.print_dialog("Zombis que escaparon: " + str(stat_zombies_escaped), 80, 90, 50, 150)
+    story.print_dialog("Daño infligido: " + str(stat_damage_dealt), 80, 90, 50, 150)
+    story.print_dialog("Vidas ganadas: " + str(stat_lifes_won), 80, 90, 50, 150)
+    story.print_dialog("Vidas perdidas: " + str(stat_lifes_lost), 80, 90, 50, 150)
+
+    if player_level == 11:
+        story.print_dialog("¡Felicidades, Alex! Has alcanzado el refugio humano.", 80, 90, 50, 150)
+        story.print_dialog("Gracias a tu ingenio, los supervivientes ahora tienen una oportunidad.", 80, 90, 50, 150)
+        story.print_dialog("Con tu Micro:bit, comenzará la investigación para encontrar una cura.", 80, 90, 50, 150)
+        story.print_dialog("El destino de la humanidad está en buenas manos.", 80, 90, 50, 150)
+    else:
+        story.print_dialog("Alex ha caído en su lucha contra las hordas de zombis.", 80, 90, 50, 150)
+        story.print_dialog("Aunque su esfuerzo fue valiente, los zombis han tomado el control.", 80, 90, 50, 150)
+        story.print_dialog("El refugio humano sigue siendo un sueño distante...", 80, 90, 50, 150)
+        story.print_dialog("¿Podrá la humanidad encontrar una nueva esperanza?", 80, 90, 50, 150)
+
+# Eventos
+def on_projectile_collision(bullet, zombie):
+    global player_power, zombie_hp, player_exp, zombie_xp_reward, zombie_stun_speed, zombie_stun_duration, stat_accurate_shots, stat_damage_dealt
+    stat_accurate_shots+=1
+    stat_damage_dealt+=player_power
+    animate_bullet_collision(bullet)
+    statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, zombie).value += -player_power
+    zombie.set_velocity(-zombie_stun_speed, 0)
+    pause(zombie_stun_duration)
+    zombie.set_velocity(-zombie_speed, 0)
+sprites.on_overlap(SpriteKind.projectile,SpriteKind.enemy,on_projectile_collision)
+
+def on_player_collision_with_enemy(player, zombie):
+    global zombie_power, player_hp, stat_lifes_lost
+    info.change_life_by(-1)
+    stat_lifes_lost+=1
+    zombie.destroy()
+    scene.camera_shake(4, 500)
+sprites.on_overlap(SpriteKind.player,SpriteKind.enemy,on_player_collision_with_enemy)
+
+def on_zombie_life_zero(status):
+    global player_exp, zombie_xp_reward, stat_zombies_killed
+    status.sprite_attached_to().destroy(effects.disintegrate)
+    stat_zombies_killed+=1
+    player_exp += zombie_xp_reward
+    update_exp_status_bar()
+statusbars.on_zero(StatusBarKind.enemy_health, on_zombie_life_zero)
+
+def on_life_zero():
+    game_over()
+info.on_life_zero(on_life_zero)
+
 
 def create_player():
     global player_sprite, direction
@@ -1225,23 +1121,10 @@ def create_bullet():
 
     bullet_id = bullet_list.length + 1
     bullet = Bullet(bullet_sprite,bullet_id)
-    animate_bullet(bullet_sprite)
     bullet_list.append(bullet)
     
     return bullet_sprite
-    
-def zombie_cutscene():
-    global skip_lore_sprite
-    sprites.destroy(skip_lore_sprite)
-    open_zombie_screen()
-    story.start_cutscene(stats_cutscene)
 
-def lore_cutscene():
-    lore_screen()
-    story.start_cutscene(zombie_cutscene)
-
-def stats_cutscene():
-    stats_screen()
 # Button A
 def on_a_pressed():
     global on_menu, on_zombie_screen, on_lore_screen
@@ -1350,16 +1233,6 @@ def animate_bullet_collision(bullet):
         False)
     pause(0)
     sprites.destroy(bullet)
-def animate_bullet(bullet:Sprite):
-    while bullet.x >= 0 and bullet.x <= 120 and (bullet.y >= 0 and bullet.y <= 120):
-        if direction == "left":
-            bullet.x += -1
-        elif direction == "right":
-            bullet.x += 1
-        elif direction == "up":
-            bullet.y += 1
-        else:
-            bullet.y += -1
 
 def on_on_update():
     scene.center_camera_at(player_sprite.x, 60)

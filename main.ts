@@ -60,40 +60,37 @@ let stat_zombies_killed = 0
 let stat_damage_dealt = 0
 let stat_lifes_won = 0
 let stat_lifes_lost = 0
-//  main
-open_main_screen()
+//  Classes
 namespace SpriteKind {
     export const projectile = SpriteKind.create()
     export const enemy = SpriteKind.create()
     export const player = SpriteKind.create()
 }
 
-statusbars.onZero(StatusBarKind.EnemyHealth, function on_on_zero(status: StatusBarSprite) {
+class Bullet {
+    bullet_id: Number
+    sprite: Sprite
+    constructor(sprite: Sprite, bullet_id: Number) {
+        this.bullet_id = bullet_id
+        this.sprite = sprite
+    }
     
-    status.spriteAttachedTo().destroy(effects.disintegrate)
-    stat_zombies_killed += 1
-    player_exp += zombie_xp_reward
-    update_exp_status_bar()
-})
-sprites.onOverlap(SpriteKind.projectile, SpriteKind.enemy, function on_projectile_collision(bullet: Sprite, zombie: Sprite) {
+}
+
+class Zombie {
+    zombie_id: Number
+    sprite: Sprite
+    constructor(sprite: Sprite, zombie_id: Number) {
+        this.zombie_id = zombie_id
+        this.sprite = sprite
+    }
     
-    stat_accurate_shots += 1
-    stat_damage_dealt += player_power
-    animate_bullet_collision(bullet)
-    statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, zombie).value += -player_power
-    zombie.setVelocity(-zombie_stun_speed, 0)
-    pause(zombie_stun_duration)
-    zombie.setVelocity(-zombie_speed, 0)
-})
-sprites.onOverlap(SpriteKind.player, SpriteKind.enemy, function on_player_collision_with_enemy(player: Sprite, zombie: Sprite) {
-    
-    info.changeLifeBy(-1)
-    stat_lifes_lost += 1
-    zombie.destroy()
-    scene.cameraShake(4, 500)
-})
+}
+
+//  main
+open_main_screen()
 //  Screens
-//  Main screen
+//  Pantalla principal
 function open_main_screen() {
     
     on_menu = true
@@ -109,7 +106,6 @@ function open_main_screen() {
     
 }
 
-//  Related functions to main screen
 function create_title_sprite() {
     
     title_sprite = textsprite.create("Zomb")
@@ -125,13 +121,7 @@ function bottom_text_sprite() {
     text_sprite.setPosition(80, 110)
 }
 
-function create_skip_lore_sprite() {
-    
-    skip_lore_sprite = textsprite.create("Apreta A para skipear lore")
-    skip_lore_sprite.setOutline(0.2, 1)
-    skip_lore_sprite.setPosition(80, 110)
-}
-
+//  Pantalla de lore
 function lore_screen() {
     
     on_lore_screen = true
@@ -271,11 +261,23 @@ function lore_screen() {
     story.printDialog("¿Podrá salvarse y encontrar una cura?", 80, 90, 50, 150)
 }
 
-//  First screen
+function create_skip_lore_sprite() {
+    
+    skip_lore_sprite = textsprite.create("Apreta A para skipear lore")
+    skip_lore_sprite.setOutline(0.2, 1)
+    skip_lore_sprite.setPosition(80, 110)
+}
+
+//  Pantalla de juego
 function open_zombie_screen() {
+    initialize_game_data()
+    gamer()
+}
+
+function initialize_game_data() {
     scene.setBackgroundImage(assets.image`
-                cityscape
-            `)
+            cityscape
+        `)
     
     on_zombie_screen = true
     on_menu = false
@@ -296,16 +298,9 @@ function open_zombie_screen() {
         scene.centerCameraAt(player_sprite.x, 60)
     })
     info.setLife(3)
-    gamer()
 }
 
-function update_exp_status_bar() {
-    
-    exp_status_bar.max = player_exp_required
-    exp_status_bar.value = player_exp
-    exp_status_bar.setLabel("EXP: " + player_exp + "/" + player_exp_required)
-}
-
+//  Funcion recursiva para crear zombies en funcion del nivel
 function gamer() {
     
     update_exp_status_bar()
@@ -333,11 +328,13 @@ function next_level() {
     }
     
     if (player_level == 11) {
+        //  Caso base 1
         game_over()
         return
     }
     
     if (info.life() == 0) {
+        //  Caso base 2
         game_over()
         return
     }
@@ -352,49 +349,6 @@ function next_level() {
     gamer()
 }
 
-info.onLifeZero(function on_life_zero() {
-    game_over()
-})
-function game_over() {
-    
-    on_stats_screen = true
-    story.startCutscene(stats_cutscene)
-}
-
-function stats_screen() {
-    
-    let stat_missed_shots = stat_shots - stat_accurate_shots
-    let stat_precission = stat_shots > 0 ? stat_accurate_shots / stat_shots * 100 : 0
-    story.setPagePauseLength(0, 1000)
-    if (player_level >= 11) {
-        game.splash("Game Over", "You have reached the max level!")
-    } else {
-        game.splash("Game Over", "You died")
-    }
-    
-    story.printDialog("Balas disparadas: " + ("" + stat_shots), 80, 90, 50, 150)
-    story.printDialog("Balas acertadas: " + ("" + stat_accurate_shots), 80, 90, 50, 150)
-    story.printDialog("Precisión: " + ("" + stat_precission) + "%", 80, 90, 50, 150)
-    story.printDialog("Zombis eliminados: " + ("" + stat_zombies_killed), 80, 90, 50, 150)
-    story.printDialog("Zombis que escaparon: " + ("" + stat_zombies_escaped), 80, 90, 50, 150)
-    story.printDialog("Daño infligido: " + ("" + stat_damage_dealt), 80, 90, 50, 150)
-    story.printDialog("Vidas ganadas: " + ("" + stat_lifes_won), 80, 90, 50, 150)
-    story.printDialog("Vidas perdidas: " + ("" + stat_lifes_lost), 80, 90, 50, 150)
-    if (player_level == 11) {
-        story.printDialog("¡Felicidades, Alex! Has alcanzado el refugio humano.", 80, 90, 50, 150)
-        story.printDialog("Gracias a tu ingenio, los supervivientes ahora tienen una oportunidad.", 80, 90, 50, 150)
-        story.printDialog("Con tu Micro:bit, comenzará la investigación para encontrar una cura.", 80, 90, 50, 150)
-        story.printDialog("El destino de la humanidad está en buenas manos.", 80, 90, 50, 150)
-    } else {
-        story.printDialog("Alex ha caído en su lucha contra las hordas de zombis.", 80, 90, 50, 150)
-        story.printDialog("Aunque su esfuerzo fue valiente, los zombis han tomado el control.", 80, 90, 50, 150)
-        story.printDialog("El refugio humano sigue siendo un sueño distante...", 80, 90, 50, 150)
-        story.printDialog("¿Podrá la humanidad encontrar una nueva esperanza?", 80, 90, 50, 150)
-    }
-    
-    game.over()
-}
-
 function set_player_stats(level: number) {
     
     if (info.life() < 3) {
@@ -402,154 +356,41 @@ function set_player_stats(level: number) {
         stat_lifes_won += 1
     }
     
-    if (level == 1) {
-        player_hp = 100
-        player_power = 50
-        player_speed = 200
-        player_exp_required = 100
-    } else if (level == 2) {
-        player_hp = 150
-        player_power = 60
-        player_speed = 210
-        player_exp_required = 200
-    } else if (level == 3) {
-        player_hp = 200
-        player_power = 70
-        player_speed = 220
-        player_exp_required = 300
-    } else if (level == 4) {
-        player_hp = 250
-        player_power = 80
-        player_speed = 230
-        player_exp_required = 400
-    } else if (level == 5) {
-        player_hp = 300
-        player_power = 90
-        player_speed = 240
-        player_exp_required = 500
-    } else if (level == 6) {
-        player_hp = 350
-        player_power = 100
-        player_speed = 250
-        player_exp_required = 600
-    } else if (level == 7) {
-        player_hp = 400
-        player_power = 110
-        player_speed = 260
-        player_exp_required = 700
-    } else if (level == 8) {
-        player_hp = 450
-        player_power = 120
-        player_speed = 270
-        player_exp_required = 800
-    } else if (level == 9) {
-        player_hp = 500
-        player_power = 130
-        player_speed = 280
-        player_exp_required = 900
-    } else if (level == 10) {
-        player_hp = 550
-        player_power = 140
-        player_speed = 290
-        player_exp_required = 1000
+    let stats = {
+        "hp" : 100 + (level - 1) * 50,
+        "power" : 50 + (level - 1) * 10,
+        "speed" : 200 + (level - 1) * 10,
+        "exp_required" : 100 * level,
     }
     
+    player_hp = stats["hp"]
+    player_power = stats["power"]
+    player_speed = stats["speed"]
+    player_exp_required = stats["exp_required"]
 }
 
 function set_zombie_stats(level: number) {
     
-    if (level == 1) {
-        zombie_hp = 100
-        zombie_power = 50
-        zombie_speed = 35
-        delay_min_enemies = 1000
-        delay_max_enemies = 1500
-        zombie_xp_reward = 50
-        zombie_stun_duration = 2000
-        zombie_stun_speed = 10
-    } else if (level == 2) {
-        zombie_hp = 150
-        zombie_power = 60
-        zombie_speed = 40
-        delay_min_enemies = 900
-        delay_max_enemies = 1400
-        zombie_xp_reward = 50
-        zombie_stun_duration = 1800
-        zombie_stun_speed = 12
-    } else if (level == 3) {
-        zombie_hp = 200
-        zombie_power = 70
-        zombie_speed = 45
-        delay_min_enemies = 800
-        delay_max_enemies = 1300
-        zombie_xp_reward = 50
-        zombie_stun_duration = 1600
-        zombie_stun_speed = 14
-    } else if (level == 4) {
-        zombie_hp = 250
-        zombie_power = 80
-        zombie_speed = 50
-        delay_min_enemies = 700
-        delay_max_enemies = 1200
-        zombie_xp_reward = 50
-        zombie_stun_duration = 1400
-        zombie_stun_speed = 16
-    } else if (level == 5) {
-        zombie_hp = 300
-        zombie_power = 90
-        zombie_speed = 55
-        delay_min_enemies = 600
-        delay_max_enemies = 1100
-        zombie_xp_reward = 50
-        zombie_stun_duration = 1200
-        zombie_stun_speed = 18
-    } else if (level == 6) {
-        zombie_hp = 350
-        zombie_power = 100
-        zombie_speed = 60
-        delay_min_enemies = 500
-        delay_max_enemies = 1000
-        zombie_xp_reward = 50
-        zombie_stun_duration = 1000
-        zombie_stun_speed = 20
-    } else if (level == 7) {
-        zombie_hp = 400
-        zombie_power = 110
-        zombie_speed = 65
-        delay_min_enemies = 400
-        delay_max_enemies = 900
-        zombie_xp_reward = 50
-        zombie_stun_duration = 800
-        zombie_stun_speed = 22
-    } else if (level == 8) {
-        zombie_hp = 450
-        zombie_power = 120
-        zombie_speed = 70
-        delay_min_enemies = 300
-        delay_max_enemies = 800
-        zombie_xp_reward = 50
-        zombie_stun_duration = 600
-        zombie_stun_speed = 24
-    } else if (level == 9) {
-        zombie_hp = 500
-        zombie_power = 130
-        zombie_speed = 75
-        delay_min_enemies = 200
-        delay_max_enemies = 700
-        zombie_xp_reward = 50
-        zombie_stun_duration = 400
-        zombie_stun_speed = 26
-    } else if (level == 10) {
-        zombie_hp = 550
-        zombie_power = 140
-        zombie_speed = 80
-        delay_min_enemies = 100
-        delay_max_enemies = 600
-        zombie_xp_reward = 50
-        zombie_stun_duration = 200
-        zombie_stun_speed = 28
+    
+    let stats = {
+        "hp" : 100 + (level - 1) * 50,
+        "power" : 50 + (level - 1) * 10,
+        "speed" : 35 + (level - 1) * 5,
+        "delay_min" : Math.max(1000 - (level - 1) * 100, 100),
+        "delay_max" : Math.max(1500 - (level - 1) * 100, 600),
+        "xp_reward" : 50,
+        "stun_duration" : Math.max(2000 - (level - 1) * 200, 200),
+        "stun_speed" : 10 + (level - 1) * 2,
     }
     
+    zombie_hp = stats["hp"]
+    zombie_power = stats["power"]
+    zombie_speed = stats["speed"]
+    delay_min_enemies = stats["delay_min"]
+    delay_max_enemies = stats["delay_max"]
+    zombie_xp_reward = stats["xp_reward"]
+    zombie_stun_duration = stats["stun_duration"]
+    zombie_stun_speed = stats["stun_speed"]
 }
 
 function destroy_bullets() {
@@ -600,26 +441,85 @@ function destroy_all_bullets() {
     }
 }
 
-class Bullet {
-    bullet_id: Number
-    sprite: Sprite
-    constructor(sprite: Sprite, bullet_id: Number) {
-        this.bullet_id = bullet_id
-        this.sprite = sprite
+function update_exp_status_bar() {
+    
+    exp_status_bar.max = player_exp_required
+    exp_status_bar.value = player_exp
+    exp_status_bar.setLabel("EXP: " + player_exp + "/" + player_exp_required)
+}
+
+function game_over() {
+    
+    on_stats_screen = true
+    story.startCutscene(stats_cutscene)
+}
+
+function stats_cutscene() {
+    stats_screen()
+    game.over()
+}
+
+function stats_screen() {
+    
+    let stat_missed_shots = stat_shots - stat_accurate_shots
+    let stat_precission = stat_shots > 0 ? stat_accurate_shots / stat_shots * 100 : 0
+    story.setPagePauseLength(0, 1000)
+    if (player_level >= 11) {
+        game.splash("Game Over", "You have reached the max level!")
+    } else {
+        game.splash("Game Over", "You died")
+    }
+    
+    story.printDialog("Balas disparadas: " + ("" + stat_shots), 80, 90, 50, 150)
+    story.printDialog("Balas acertadas: " + ("" + stat_accurate_shots), 80, 90, 50, 150)
+    story.printDialog("Precisión: " + ("" + stat_precission) + "%", 80, 90, 50, 150)
+    story.printDialog("Zombis eliminados: " + ("" + stat_zombies_killed), 80, 90, 50, 150)
+    story.printDialog("Zombis que escaparon: " + ("" + stat_zombies_escaped), 80, 90, 50, 150)
+    story.printDialog("Daño infligido: " + ("" + stat_damage_dealt), 80, 90, 50, 150)
+    story.printDialog("Vidas ganadas: " + ("" + stat_lifes_won), 80, 90, 50, 150)
+    story.printDialog("Vidas perdidas: " + ("" + stat_lifes_lost), 80, 90, 50, 150)
+    if (player_level == 11) {
+        story.printDialog("¡Felicidades, Alex! Has alcanzado el refugio humano.", 80, 90, 50, 150)
+        story.printDialog("Gracias a tu ingenio, los supervivientes ahora tienen una oportunidad.", 80, 90, 50, 150)
+        story.printDialog("Con tu Micro:bit, comenzará la investigación para encontrar una cura.", 80, 90, 50, 150)
+        story.printDialog("El destino de la humanidad está en buenas manos.", 80, 90, 50, 150)
+    } else {
+        story.printDialog("Alex ha caído en su lucha contra las hordas de zombis.", 80, 90, 50, 150)
+        story.printDialog("Aunque su esfuerzo fue valiente, los zombis han tomado el control.", 80, 90, 50, 150)
+        story.printDialog("El refugio humano sigue siendo un sueño distante...", 80, 90, 50, 150)
+        story.printDialog("¿Podrá la humanidad encontrar una nueva esperanza?", 80, 90, 50, 150)
     }
     
 }
 
-class Zombie {
-    zombie_id: Number
-    sprite: Sprite
-    constructor(sprite: Sprite, zombie_id: Number) {
-        this.zombie_id = zombie_id
-        this.sprite = sprite
-    }
+//  Eventos
+sprites.onOverlap(SpriteKind.projectile, SpriteKind.enemy, function on_projectile_collision(bullet: Sprite, zombie: Sprite) {
     
-}
-
+    stat_accurate_shots += 1
+    stat_damage_dealt += player_power
+    animate_bullet_collision(bullet)
+    statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, zombie).value += -player_power
+    zombie.setVelocity(-zombie_stun_speed, 0)
+    pause(zombie_stun_duration)
+    zombie.setVelocity(-zombie_speed, 0)
+})
+sprites.onOverlap(SpriteKind.player, SpriteKind.enemy, function on_player_collision_with_enemy(player: Sprite, zombie: Sprite) {
+    
+    info.changeLifeBy(-1)
+    stat_lifes_lost += 1
+    zombie.destroy()
+    scene.cameraShake(4, 500)
+})
+statusbars.onZero(StatusBarKind.EnemyHealth, function on_zombie_life_zero(status: StatusBarSprite) {
+    
+    status.spriteAttachedTo().destroy(effects.disintegrate)
+    stat_zombies_killed += 1
+    player_exp += zombie_xp_reward
+    update_exp_status_bar()
+})
+info.onLifeZero(function on_life_zero() {
+    game_over()
+})
 function create_player() {
     
     player_sprite = sprites.create(img`
@@ -1199,13 +1099,8 @@ function create_bullet(): Sprite {
         `, SpriteKind.projectile)
     let bullet_id = bullet_list.length + 1
     let bullet = new Bullet(bullet_sprite, bullet_id)
-    animate_bullet(bullet_sprite)
     bullet_list.push(bullet)
     return bullet_sprite
-}
-
-function stats_cutscene() {
-    stats_screen()
 }
 
 //  Button A
@@ -1321,20 +1216,5 @@ function animate_bullet_collision(bullet: any) {
             `], 0, false)
     pause(0)
     sprites.destroy(bullet)
-}
-
-function animate_bullet(bullet: Sprite) {
-    while (bullet.x >= 0 && bullet.x <= 120 && (bullet.y >= 0 && bullet.y <= 120)) {
-        if (direction == "left") {
-            bullet.x += -1
-        } else if (direction == "right") {
-            bullet.x += 1
-        } else if (direction == "up") {
-            bullet.y += 1
-        } else {
-            bullet.y += -1
-        }
-        
-    }
 }
 
