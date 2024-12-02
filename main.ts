@@ -296,18 +296,8 @@ function initialize_game_data() {
     scroller.setCameraScrollingMultipliers(1, 0)
     game.onUpdate(function on_on_update() {
         scene.centerCameraAt(player_sprite.x + 50, 60)
-        if (player_sprite.x < 0) {
-            player_sprite.x = 0
-        }
-        
-        if (player_sprite.y < 20) {
-            player_sprite.y = 20
-        }
-        
-        if (player_sprite.y > screen.height) {
-            player_sprite.y = screen.height
-        }
-        
+        set_boundaries()
+        play_foot_step()
     })
     info.setLife(3)
 }
@@ -342,12 +332,14 @@ function next_level() {
     if (player_level == 11) {
         //  Caso base 1
         game_over()
+        music.powerUp.play()
         return
     }
     
     if (info.life() == 0) {
         //  Caso base 2
         game_over()
+        music.spooky.play()
         return
     }
     
@@ -355,6 +347,7 @@ function next_level() {
     update_exp_status_bar()
     set_zombie_stats(player_level)
     set_player_stats(player_level)
+    music.baDing.play()
     game.splash("Level Up! - " + player_level)
     destroy_all_zombies()
     destroy_all_bullets()
@@ -512,6 +505,7 @@ sprites.onOverlap(SpriteKind.projectile, SpriteKind.enemy, function on_projectil
     stat_accurate_shots += 1
     stat_damage_dealt += player_power
     animate_bullet_collision(bullet)
+    play_custom_hit_sound()
     statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, zombie).value += -player_power
     zombie.setVelocity(-zombie_stun_speed, 0)
     pause(zombie_stun_duration)
@@ -519,6 +513,7 @@ sprites.onOverlap(SpriteKind.projectile, SpriteKind.enemy, function on_projectil
 })
 sprites.onOverlap(SpriteKind.player, SpriteKind.enemy, function on_player_collision_with_enemy(player: Sprite, zombie: Sprite) {
     
+    music.zapped.play()
     info.changeLifeBy(-1)
     stat_lifes_lost += 1
     zombie.destroy()
@@ -526,6 +521,7 @@ sprites.onOverlap(SpriteKind.player, SpriteKind.enemy, function on_player_collis
 })
 statusbars.onZero(StatusBarKind.EnemyHealth, function on_zombie_life_zero(status: StatusBarSprite) {
     
+    music.thump.play()
     status.spriteAttachedTo().destroy(effects.disintegrate)
     stat_zombies_killed += 1
     player_exp += zombie_xp_reward
@@ -651,7 +647,7 @@ controller.up.onEvent(ControllerButtonEvent.Pressed, function on_up_pressed() {
                                                 . . 4 d d e 2 2 2 2 2 f 4 . . .
                                                 . . . 4 e e f f f f f f e . . .
                                                 . . . . . . . . . f f f . . . .
-                `], 200, true)
+                `], 0, true)
         direction = "up"
     }
     
@@ -731,7 +727,7 @@ controller.left.onEvent(ControllerButtonEvent.Pressed, function on_left_pressed(
                                                 . . f f 5 5 4 4 f e e f . . . .
                                                 . . f f f f f f f f f f . . . .
                                                 . . . f f f . . . f f . . . . .
-                `], 200, true)
+                `], 0, true)
         direction = "left"
     }
     
@@ -811,7 +807,7 @@ controller.right.onEvent(ControllerButtonEvent.Pressed, function on_right_presse
                                                 . . . . f e e f 4 4 5 5 f f . .
                                                 . . . . f f f f f f f f f f . .
                                                 . . . . . f f . . . f f f . . .
-                `], 200, true)
+                `], 0, true)
         direction = "right"
     }
     
@@ -891,7 +887,7 @@ controller.down.onEvent(ControllerButtonEvent.Pressed, function on_down_pressed(
                                                 . . . . e e f 5 5 4 4 f . . . .
                                                 . . . . . f f f f f f f . . . .
                                                 . . . . . . . . . f f f . . . .
-                `], 200, true)
+                `], 0, true)
         direction = "down"
     }
     
@@ -920,7 +916,7 @@ controller.right.onEvent(ControllerButtonEvent.Released, function on_right_relea
                             . . . . . f e e f 4 5 5 f . . .
                             . . . . . . f f f f f f . . . .
                             . . . . . . . f f f . . . . . .
-            `], 100, false)
+            `], 0, false)
     }
     
 })
@@ -991,6 +987,7 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function on_b_pressed() {
 //  Related functions to button B
 function shot() {
     
+    play_custom_shot()
     xpos_bullet = player_sprite.x
     ypos_bullet = player_sprite.y
     bullet_sprite = create_bullet()
@@ -1145,5 +1142,63 @@ function animate_bullet_collision(bullet: any) {
             `], 0, false)
     pause(0)
     sprites.destroy(bullet)
+}
+
+let footstep_timer = game.runtime()
+function set_boundaries() {
+    if (player_sprite.x < 0) {
+        player_sprite.x = 0
+    }
+    
+    if (player_sprite.y < 20) {
+        player_sprite.y = 20
+    }
+    
+    if (player_sprite.y > screen.height) {
+        player_sprite.y = screen.height
+    }
+    
+}
+
+function play_foot_step() {
+    let current_time: number;
+    
+    if (controller.left.isPressed() || controller.right.isPressed() || controller.down.isPressed() || controller.up.isPressed()) {
+        current_time = game.runtime()
+        if (current_time - footstep_timer > 150) {
+            play_custom_footstep()
+            footstep_timer = current_time
+        }
+        
+    }
+    
+}
+
+function play_custom_shot() {
+    music.playSoundEffect(music.createSoundEffect(WaveShape.Square, 200, 100, 50, 0, 100, SoundExpressionEffect.None, InterpolationCurve.Linear), SoundExpressionPlayMode.InBackground)
+}
+
+function play_custom_hit_sound() {
+    let startFreq = randint(280, 320)
+    let endFreq = randint(140, 160)
+    let duration = randint(150, 250)
+    //  Slight variation in duration
+    music.playSoundEffect(music.createSoundEffect(WaveShape.Sawtooth, startFreq, endFreq, 100, 0, duration, SoundExpressionEffect.None, InterpolationCurve.Linear), SoundExpressionPlayMode.InBackground)
+}
+
+//  High starting frequency for "punchy" effect
+//  Lower ending frequency for a quick drop
+//  Loud start
+//  Fade out to silence
+//  Duration in milliseconds
+//  No extra effects
+//  Smooth pitch transition
+function play_custom_footstep() {
+    let startFreq = randint(220, 240)
+    //  Slight variation for realism
+    let endFreq = randint(180, 200)
+    let duration = 100
+    //  Quick and subtle
+    music.playSoundEffect(music.createSoundEffect(WaveShape.Triangle, startFreq, endFreq, 50, 0, duration, SoundExpressionEffect.None, InterpolationCurve.Curve), SoundExpressionPlayMode.InBackground)
 }
 

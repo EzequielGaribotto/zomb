@@ -324,14 +324,17 @@ def next_level():
         player_level += 1
     if (player_level == 11): # Caso base 1
         game_over()
+        music.power_up.play()
         return
     if (info.life() == 0): # Caso base 2
         game_over()
+        music.spooky.play()
         return
     player_exp = 0
     update_exp_status_bar()
     set_zombie_stats(player_level)
     set_player_stats(player_level)
+    music.ba_ding.play()
     game.splash("Level Up! - " + player_level)
     destroy_all_zombies()
     destroy_all_bullets()
@@ -466,6 +469,7 @@ def on_projectile_collision(bullet, zombie):
     stat_accurate_shots+=1
     stat_damage_dealt+=player_power
     animate_bullet_collision(bullet)
+    play_custom_hit_sound()
     statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, zombie).value += -player_power
     zombie.set_velocity(-zombie_stun_speed, 0)
     pause(zombie_stun_duration)
@@ -474,6 +478,7 @@ sprites.on_overlap(SpriteKind.projectile,SpriteKind.enemy,on_projectile_collisio
 
 def on_player_collision_with_enemy(player, zombie):
     global zombie_power, player_hp, stat_lifes_lost
+    music.zapped.play()
     info.change_life_by(-1)
     stat_lifes_lost+=1
     zombie.destroy()
@@ -482,6 +487,7 @@ sprites.on_overlap(SpriteKind.player,SpriteKind.enemy,on_player_collision_with_e
 
 def on_zombie_life_zero(status):
     global player_exp, zombie_xp_reward, stat_zombies_killed
+    music.thump.play()
     status.sprite_attached_to().destroy(effects.disintegrate)
     stat_zombies_killed+=1
     player_exp += zombie_xp_reward
@@ -618,7 +624,7 @@ def on_up_pressed():
                                                 . . . 4 e e f f f f f f e . . .
                                                 . . . . . . . . . f f f . . . .
                 """)],
-            200,
+            0,
             True)
         direction = "up"
 controller.up.on_event(ControllerButtonEvent.PRESSED, on_up_pressed)
@@ -704,7 +710,7 @@ def on_left_pressed():
                                                 . . f f f f f f f f f f . . . .
                                                 . . . f f f . . . f f . . . . .
                 """)],
-            200,
+            0,
             True)
         direction = "left"
 controller.left.on_event(ControllerButtonEvent.PRESSED, on_left_pressed)
@@ -790,7 +796,7 @@ def on_right_pressed():
                                                 . . . . f f f f f f f f f f . .
                                                 . . . . . f f . . . f f f . . .
                 """)],
-            200,
+            0,
             True)
         direction = "right"
 controller.right.on_event(ControllerButtonEvent.PRESSED, on_right_pressed)
@@ -876,7 +882,7 @@ def on_down_pressed():
                                                 . . . . . f f f f f f f . . . .
                                                 . . . . . . . . . f f f . . . .
                 """)],
-            200,
+            0,
             True)
         direction = "down"
 controller.down.on_event(ControllerButtonEvent.PRESSED, on_down_pressed)
@@ -906,7 +912,7 @@ def on_right_released():
                             . . . . . f e e f 4 5 5 f . . .
                             . . . . . . f f f f f f . . . .
                             . . . . . . . f f f . . . . . .
-            """)], 100, False)
+            """)], 0, False)
 controller.right.onEvent(ControllerButtonEvent.Released, on_right_released)
 
 # Left
@@ -999,6 +1005,7 @@ controller.B.on_event(ControllerButtonEvent.PRESSED, on_b_pressed)
 # Related functions to button B
 def shot():
     global xpos_bullet, ypos_bullet, bullet_sprite, stat_shots
+    play_custom_shot()
     xpos_bullet = player_sprite.x
     ypos_bullet = player_sprite.y
     bullet_sprite = create_bullet()
@@ -1148,11 +1155,67 @@ def animate_bullet_collision(bullet):
     pause(0)
     sprites.destroy(bullet)
 
+footstep_timer = game.runtime()
+
 def on_on_update():
-    scene.center_camera_at(player_sprite.x+50, 60)
-    if (player_sprite.x < 0):
+    scene.center_camera_at(player_sprite.x + 50, 60)
+    set_boundaries()
+    play_foot_step()
+
+def set_boundaries():
+    if player_sprite.x < 0:
         player_sprite.x = 0
-    if (player_sprite.y < 20):
+    if player_sprite.y < 20:
         player_sprite.y = 20
-    if (player_sprite.y > screen.height):
+    if player_sprite.y > screen.height:
         player_sprite.y = screen.height
+
+def play_foot_step():
+    global footstep_timer
+    if controller.left.is_pressed() or controller.right.is_pressed() or controller.down.is_pressed() or controller.up.is_pressed():
+        current_time = game.runtime()
+        if current_time - footstep_timer > 150:
+            play_custom_footstep()
+            footstep_timer = current_time
+
+def play_custom_shot():
+    music.play_sound_effect(music.create_sound_effect(
+        waveShape=WaveShape.SQUARE,
+        startFrequency=200,
+        endFrequency=100,
+        startVolume=50,
+        endVolume=0,
+        duration=100,
+        effect=SoundExpressionEffect.NONE,
+        interpolation=InterpolationCurve.LINEAR,
+    ), mode=SoundExpressionPlayMode.IN_BACKGROUND)
+
+def play_custom_hit_sound():
+    startFreq = randint(280, 320)
+    endFreq = randint(140, 160)
+    duration = randint(150, 250)  # Slight variation in duration
+    music.play_sound_effect(music.create_sound_effect(
+        waveShape=WaveShape.SAWTOOTH,  
+        startFrequency=startFreq,      # High starting frequency for "punchy" effect
+        endFrequency=endFreq,        # Lower ending frequency for a quick drop
+        startVolume=100,         # Loud start
+        endVolume=0,             # Fade out to silence
+        duration=duration,             # Duration in milliseconds
+        effect=SoundExpressionEffect.NONE,  # No extra effects
+        interpolation=InterpolationCurve.LINEAR,  # Smooth pitch transition
+    ), mode=SoundExpressionPlayMode.IN_BACKGROUND)
+
+def play_custom_footstep():
+    startFreq = randint(220, 240)  # Slight variation for realism
+    endFreq = randint(180, 200)
+    duration = 100  # Quick and subtle
+    music.play_sound_effect(music.create_sound_effect(
+        waveShape=WaveShape.TRIANGLE,  # Triangle wave for a soft, smooth tone
+        startFrequency=startFreq,
+        endFrequency=endFreq,
+        startVolume=50,  # Moderate volume for subtlety
+        endVolume=0,  # Fade out for realism
+        duration=duration,
+        effect=SoundExpressionEffect.NONE,  # No additional effects
+        interpolation=InterpolationCurve.CURVE,  # Slightly curved transition
+    ), mode=SoundExpressionPlayMode.IN_BACKGROUND)
