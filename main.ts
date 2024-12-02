@@ -287,6 +287,7 @@ function initialize_game_data() {
     on_zombie_screen = true
     on_menu = false
     on_lore_screen = false
+    // 
     player_level = 1
     create_player()
     story.spriteSayText(player_sprite, "ostras pedrin")
@@ -333,6 +334,26 @@ function next_level() {
     
     if (info.life() > 0) {
         player_level += 1
+        if (player_level == 2) {
+            story.printDialog("La enfermedad comenzó en silencio... nadie vio venir el caos.", 80, 90, 50, 150)
+        } else if (player_level == 3) {
+            story.printDialog("Los primeros infectados eran lentos, ahora son más rápidos y letales.", 80, 90, 50, 150)
+        } else if (player_level == 4) {
+            story.printDialog("Alex recuerda su hogar, pero ya no queda nada de él", 80, 90, 50, 150)
+        } else if (player_level == 5) {
+            story.printDialog("Un rumor dice que un refugio seguro existe al este... ¿será cierto?", 80, 90, 50, 150)
+        } else if (player_level == 6) {
+            story.printDialog("La infección avanza más rápido que cualquier cura posible.", 80, 90, 50, 150)
+        } else if (player_level == 7) {
+            story.printDialog("Encontré un diario... alguien intentó detener esto, pero fracasó.", 80, 90, 50, 150)
+        } else if (player_level == 8) {
+            story.printDialog("El Micro:bit interceptó una señal: 'Refugio bajo ataque, ayuda...", 80, 90, 50, 150)
+        } else if (player_level == 9) {
+            story.printDialog("El refugio está cerca, pero algo acecha en la oscuridad..", 80, 90, 50, 150)
+        } else if (player_level == 10) {
+            story.printDialog("Todo apunta a esto: el refugio guarda un oscuro secreto.", 80, 90, 50, 150)
+        }
+        
     }
     
     if (player_level == 11) {
@@ -1068,7 +1089,14 @@ controller.down.onEvent(ControllerButtonEvent.Released, function on_down_release
 })
 //  Button B
 controller.B.onEvent(ControllerButtonEvent.Pressed, function on_b_pressed() {
-    if (on_menu || on_lore_screen || info.life() == 0) {
+    
+    if (on_menu == true) {
+        on_menu = false
+        close_menu()
+        player_level = 10
+        open_zombie_screen()
+        player_level = 10
+    } else if (on_lore_screen || info.life() == 0) {
         
     } else {
         shot()

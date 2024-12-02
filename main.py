@@ -299,6 +299,7 @@ def initialize_game_data():
     on_zombie_screen = True
     on_menu = False
     on_lore_screen = False
+    #
     player_level = 1
     create_player()
     story.sprite_say_text(player_sprite, "ostras pedrin")
@@ -335,6 +336,24 @@ def next_level():
     global player_level, player_exp
     if (info.life() > 0):
         player_level += 1
+        if player_level == 2:
+            story.print_dialog("La enfermedad comenzó en silencio... nadie vio venir el caos.", 80, 90, 50, 150)
+        elif player_level == 3:
+            story.print_dialog("Los primeros infectados eran lentos, ahora son más rápidos y letales.", 80, 90, 50, 150)
+        elif player_level == 4:
+            story.print_dialog("Alex recuerda su hogar, pero ya no queda nada de él", 80, 90, 50, 150)
+        elif player_level == 5:
+            story.print_dialog("Un rumor dice que un refugio seguro existe al este... ¿será cierto?", 80, 90, 50, 150)
+        elif player_level == 6:
+            story.print_dialog("La infección avanza más rápido que cualquier cura posible.", 80, 90, 50, 150)
+        elif player_level == 7:
+            story.print_dialog("Encontré un diario... alguien intentó detener esto, pero fracasó.", 80, 90, 50, 150)
+        elif player_level == 8:
+            story.print_dialog("El Micro:bit interceptó una señal: 'Refugio bajo ataque, ayuda...", 80, 90, 50, 150)
+        elif player_level == 9:
+            story.print_dialog("El refugio está cerca, pero algo acecha en la oscuridad..", 80, 90, 50, 150)
+        elif player_level == 10:
+            story.print_dialog("Todo apunta a esto: el refugio guarda un oscuro secreto.", 80, 90, 50, 150)
     if (player_level == 11): # Caso base 1
         game_over()
         music.power_up.play()
@@ -1083,11 +1102,19 @@ controller.down.onEvent(ControllerButtonEvent.Released, on_down_released)
 
 # Button B
 def on_b_pressed():
-    if on_menu or on_lore_screen or info.life() == 0:
+    global on_menu, player_level
+    if on_menu == True:
+            on_menu = False
+            close_menu()
+            player_level = 10
+            open_zombie_screen()
+            player_level = 10
+    elif on_lore_screen or info.life() == 0:
         pass
     else:
         shot()
 controller.B.on_event(ControllerButtonEvent.PRESSED, on_b_pressed)
+
 
 # Related functions to button B
 def shot():
