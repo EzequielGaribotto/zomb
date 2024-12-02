@@ -40,6 +40,9 @@ xpos_bullet = 0
 ypos_zombie_sprite = 0
 zombie_xp_reward = 0
 
+# Explosion stats
+explosion_power = 0
+stat_explosion_damage = 0
 
 # Player Stats
 direction = ""
@@ -90,12 +93,15 @@ ghast_exists = False
 ghast_timer = game.runtime()
 footstep_timer = game.runtime()
 
+
+
 # Classes
 @namespace
 class SpriteKind:
     projectile = SpriteKind.create()
     enemy = SpriteKind.create()
     player = SpriteKind.create()
+    explosion = SpriteKind.create()
 
 class Bullet:
     def __init__(self, sprite: Sprite, bullet_id: Number):
@@ -295,13 +301,14 @@ def initialize_game_data():
     scene.set_background_image(assets.image("""
             cityscape
         """))
-    global on_zombie_screen, on_menu, ypos_zombie_sprite, player_level, on_lore_screen, skip_lore_sprite, exp_status_bar, player_exp, player_exp_required
+    global on_zombie_screen, on_menu, ypos_zombie_sprite, player_level, on_lore_screen, skip_lore_sprite, exp_status_bar, player_exp, player_exp_required, explosion_power
     on_zombie_screen = True
     on_menu = False
     on_lore_screen = False
     #
     player_level = 1
     create_player()
+    explosion_power = 5
     story.sprite_say_text(player_sprite, "ostras pedrin")
     sprites.destroy(skip_lore_sprite)
     set_player_stats(player_level)
@@ -373,7 +380,7 @@ def next_level():
     gamer()
 
 def set_player_stats(level: int):
-    global player_hp, player_power, player_speed, player_exp_required, stat_lifes_won, player_exp_punish
+    global player_hp, player_power, player_speed, player_exp_required, stat_lifes_won, player_exp_punish, explosion_power
     if info.life() < 3:
         info.change_life_by(+1)
         stat_lifes_won += 1
@@ -383,7 +390,8 @@ def set_player_stats(level: int):
         "power": 50 + (level - 1) * 10,
         "speed": 200 + (level - 1) * 10,
         "exp_required": 100 * level,
-        "exp_punish": level
+        "exp_punish": level,
+        "explosion_power": 5 + (level -1)
     }
 
     player_hp = stats["hp"]
@@ -532,6 +540,13 @@ def on_player_collision_with_enemy(player, zombie):
     scene.camera_shake(4, 500)
 sprites.on_overlap(SpriteKind.player,SpriteKind.enemy,on_player_collision_with_enemy)
 
+# Eventos
+def on_explosion_collision(explosion, zombie):
+    global explosion_power, stat_explosion_damage
+    stat_explosion_damage+=player_power
+    statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, zombie).value += -explosion_power
+sprites.on_overlap(SpriteKind.explosion,SpriteKind.enemy,on_explosion_collision)
+
 def on_enemy_life_zero(bar):
     global player_exp, zombie_xp_reward, stat_zombies_killed, ghast_xp_reward, stat_ghasts_killed, ghast_exists
     music.thump.play()
@@ -544,6 +559,7 @@ def on_enemy_life_zero(bar):
             stat_ghasts_killed+=1
             player_exp += ghast_xp_reward
             ghast_exists = False
+            explosion(sprite.x, sprite.y)
 
     bar.sprite_attached_to().destroy(effects.disintegrate)
     update_exp_status_bar()
@@ -1188,6 +1204,22 @@ def skip_lore():
     sprites.destroy(skip_lore_sprite)
     pause(200)
     create_skip_lore_sprite()
+
+# Función para crear la explosión
+def explosion(x: int, y: int):
+    for i in range(20):
+        blood = sprites.create(img("""
+            . . .
+            . 2 4
+            . . .
+        """), SpriteKind.explosion)
+        blood.x = x
+        blood.y = y
+        blood.vx = Math.random_range(-25, 25)
+        blood.vy = Math.random_range(-25, 25)
+        blood.set_flag(SpriteFlag.AUTO_DESTROY, True)
+        blood.lifespan = Math.random_range(800, 1000)
+
 
 # Bullet animation
 def animate_bullet_collision(bullet):

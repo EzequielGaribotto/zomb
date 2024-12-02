@@ -34,6 +34,9 @@ let ypos_bullet = 0
 let xpos_bullet = 0
 let ypos_zombie_sprite = 0
 let zombie_xp_reward = 0
+//  Explosion stats
+let explosion_power = 0
+let stat_explosion_damage = 0
 //  Player Stats
 let direction = ""
 let player_level = 0
@@ -80,6 +83,7 @@ namespace SpriteKind {
     export const projectile = SpriteKind.create()
     export const enemy = SpriteKind.create()
     export const player = SpriteKind.create()
+    export const explosion = SpriteKind.create()
 }
 
 class Bullet {
@@ -290,6 +294,7 @@ function initialize_game_data() {
     // 
     player_level = 1
     create_player()
+    explosion_power = 5
     story.spriteSayText(player_sprite, "ostras pedrin")
     sprites.destroy(skip_lore_sprite)
     set_player_stats(player_level)
@@ -394,6 +399,7 @@ function set_player_stats(level: number) {
         "speed" : 200 + (level - 1) * 10,
         "exp_required" : 100 * level,
         "exp_punish" : level,
+        "explosion_power" : 5 + (level - 1),
     }
     
     player_hp = stats["hp"]
@@ -563,6 +569,12 @@ sprites.onOverlap(SpriteKind.player, SpriteKind.enemy, function on_player_collis
     zombie.destroy()
     scene.cameraShake(4, 500)
 })
+//  Eventos
+sprites.onOverlap(SpriteKind.explosion, SpriteKind.enemy, function on_explosion_collision(explosion: Sprite, zombie: Sprite) {
+    
+    stat_explosion_damage += player_power
+    statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, zombie).value += -explosion_power
+})
 statusbars.onZero(StatusBarKind.EnemyHealth, function on_enemy_life_zero(bar: StatusBarSprite) {
     
     music.thump.play()
@@ -575,6 +587,7 @@ statusbars.onZero(StatusBarKind.EnemyHealth, function on_enemy_life_zero(bar: St
             stat_ghasts_killed += 1
             player_exp += ghast_xp_reward
             ghast_exists = false
+            explosion(sprite.x, sprite.y)
         }
         
     }
@@ -1186,6 +1199,24 @@ function skip_lore() {
     sprites.destroy(skip_lore_sprite)
     pause(200)
     create_skip_lore_sprite()
+}
+
+//  Función para crear la explosión
+function explosion(x: number, y: number) {
+    let blood: Sprite;
+    for (let i = 0; i < 20; i++) {
+        blood = sprites.create(img`
+            . . .
+            . 2 4
+            . . .
+        `, SpriteKind.explosion)
+        blood.x = x
+        blood.y = y
+        blood.vx = Math.randomRange(-25, 25)
+        blood.vy = Math.randomRange(-25, 25)
+        blood.setFlag(SpriteFlag.AutoDestroy, true)
+        blood.lifespan = Math.randomRange(800, 1000)
+    }
 }
 
 //  Bullet animation
