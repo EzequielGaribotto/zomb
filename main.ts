@@ -22,6 +22,8 @@ let skip_stats_sprite : TextSprite = null
 //  Enemies stats
 let delay_min_enemies = 0
 let delay_max_enemies = 0
+let delay_min_ghast = 0
+let delay_max_ghast = 0
 //  Zombie Stats
 let zombie_speed = 0
 let zombie_stun_duration = 0
@@ -70,6 +72,9 @@ let ghast_xp_reward = 0
 let ghast_hp = 0
 let ypos_ghast_sprite = 0
 let ghast_exists = false
+//  Timers
+let ghast_timer = game.runtime()
+let footstep_timer = game.runtime()
 //  Classes
 namespace SpriteKind {
     export const projectile = SpriteKind.create()
@@ -288,6 +293,7 @@ function initialize_game_data() {
     sprites.destroy(skip_lore_sprite)
     set_player_stats(player_level)
     set_zombie_stats(player_level)
+    set_ghast_stats(player_level)
     exp_status_bar = statusbars.create(20, 4, StatusBarKind.Energy)
     exp_status_bar.positionDirection(CollisionDirection.Top)
     controller.moveSprite(player_sprite)
@@ -403,11 +409,15 @@ function set_zombie_stats(level: number) {
 function set_ghast_stats(level: number) {
     
     let stats = {
-        "speed" : 25 + (level - 1) * 3,
+        "speed" : 50 + (level - 3) * 5,
         "xp_reward" : 50,
-        "hp" : 30 + (level - 1) * 25,
+        "hp" : 1000 + (level - 3) * 75,
+        "delay_min" : 10000 - (level - 3) * 1000,
+        "delay_max" : 15000 - (level - 3) * 500,
     }
     
+    delay_min_ghast = stats["delay_min"]
+    delay_max_ghast = stats["delay_max"]
     ghast_speed = stats["speed"]
     ghast_xp_reward = stats["xp_reward"]
     ghast_hp = stats["hp"]
@@ -555,11 +565,17 @@ info.onLifeZero(function on_life_zero() {
     game_over()
 })
 function create_enemy() {
+    let current_time: number;
+    
     
     create_zombie()
-    if (player_level == 1 && !ghast_exists) {
-        pause(250)
-        create_ghast()
+    if (player_level >= 1 && !ghast_exists) {
+        current_time = game.runtime()
+        if (current_time - ghast_timer > randint(delay_min_ghast, delay_max_ghast)) {
+            create_ghast()
+            ghast_timer = current_time
+        }
+        
     }
     
 }
@@ -1219,7 +1235,6 @@ function animate_bullet_collision(bullet: any) {
     sprites.destroy(bullet)
 }
 
-let footstep_timer = game.runtime()
 function set_boundaries() {
     if (player_sprite.x < 0) {
         player_sprite.x = 0

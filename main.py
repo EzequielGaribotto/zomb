@@ -26,6 +26,9 @@ skip_stats_sprite: TextSprite = None
 delay_min_enemies = 0
 delay_max_enemies = 0
 
+delay_min_ghast = 0
+delay_max_ghast = 0
+
 # Zombie Stats
 zombie_speed = 0
 zombie_stun_duration = 0
@@ -82,6 +85,11 @@ ghast_xp_reward = 0
 ghast_hp = 0
 ypos_ghast_sprite = 0
 ghast_exists = False
+
+# Timers
+ghast_timer = game.runtime()
+footstep_timer = game.runtime()
+
 # Classes
 @namespace
 class SpriteKind:
@@ -297,6 +305,7 @@ def initialize_game_data():
     sprites.destroy(skip_lore_sprite)
     set_player_stats(player_level)
     set_zombie_stats(player_level)
+    set_ghast_stats(player_level)
     exp_status_bar = statusbars.create(20, 4, StatusBarKind.Energy)
     exp_status_bar.position_direction(CollisionDirection.TOP)
     controller.move_sprite(player_sprite)
@@ -390,14 +399,17 @@ def set_zombie_stats(level: int):
     zombie_stun_speed = stats["stun_speed"]
 
 def set_ghast_stats(level: int):
-    global ghast_speed, ghast_xp_reward, ghast_hp
+    global ghast_speed, ghast_xp_reward, ghast_hp, delay_min_ghast, delay_max_ghast
 
     stats = {
-        "speed": 25 + (level - 1) * 3,
+        "speed": 50 + (level - 3) * 5,
         "xp_reward": 50,
-        "hp": 30 + (level -1) * 25
+        "hp": 1000 + (level - 3) * 75,
+        "delay_min": 10000 - (level - 3) * 1000,
+        "delay_max": 15000 - (level - 3) * 500
     }
-
+    delay_min_ghast = stats["delay_min"]
+    delay_max_ghast = stats["delay_max"]
     ghast_speed = stats["speed"]
     ghast_xp_reward = stats["xp_reward"]
     ghast_hp = stats["hp"]
@@ -519,17 +531,19 @@ def on_enemy_life_zero(bar):
 statusbars.on_zero(StatusBarKind.enemy_health, on_enemy_life_zero)
 
 
-
 def on_life_zero():
     game_over()
 info.on_life_zero(on_life_zero)
 
 def create_enemy():
-    global player_level, ghast_exists
+    global player_level, ghast_exists, delay_min_ghast, delay_max_ghast
+    global ghast_timer
     create_zombie()
-    if (player_level == 1 and not ghast_exists):
-        pause(250)
-        create_ghast()
+    if (player_level >= 1 and not ghast_exists):
+        current_time = game.runtime()
+        if (current_time - ghast_timer > randint(delay_min_ghast, delay_max_ghast)):
+            create_ghast()
+            ghast_timer = current_time
 
 def create_player():
     global player_sprite, direction
@@ -1227,8 +1241,6 @@ def animate_bullet_collision(bullet):
         False)
     pause(0)
     sprites.destroy(bullet)
-
-footstep_timer = game.runtime()
 
 def on_on_update():
     scene.center_camera_at(player_sprite.x + 50, 60)
