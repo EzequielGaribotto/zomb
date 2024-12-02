@@ -408,6 +408,7 @@ function remember_player_position(player_sprite: Sprite) {
 function destroy_all() {
     destroy_all_zombies()
     destroy_all_bullets()
+    destroy_all_ghasts()
     sprites.destroy(player_sprite)
 }
 
@@ -458,14 +459,14 @@ function set_player_stats(level: number) {
         "speed" : 200 + (level - 1) * 10,
         "exp_required" : 100 * level,
         "exp_punish" : level,
-        "explosion_power" : 25 + (level - 3) * 5,
+        "explosion_power" : 50 + (level - 3) * 15,
         "explosion_particle_amt" : 10 + (level - 3) * 3,
-        "explosion_min_range" : 15 + (level - 1) * 5,
-        "explosion_max_range" : 25 + (level - 1) * 5,
-        "blood_explosion_power" : 1 + (level - 1),
+        "explosion_min_range" : 30 + (level - 1) * 7,
+        "explosion_max_range" : 30 + (level - 1) * 7,
+        "blood_explosion_power" : 5 + (level - 1) * 5,
         "blood_explosion_min_range" : 15 + (level - 1) * 5,
         "blood_explosion_max_range" : 25 + (level - 1) * 5,
-        "blood_explosion_particle_amt" : 15 + (level - 1) * 5,
+        "blood_explosion_particle_amt" : 10 + (level - 1) * 5,
     }
     
     player_hp = stats["hp"]
@@ -558,7 +559,6 @@ function destroy_zombies() {
 
 function destroy_all_zombies() {
     
-    
     for (let z of zombie_list) {
         sprites.destroy(z)
     }
@@ -570,6 +570,14 @@ function destroy_all_bullets() {
     for (let b of bullet_list) {
         sprites.destroy(b.sprite)
     }
+}
+
+function destroy_all_ghasts() {
+    
+    for (let g of ghast_list) {
+        sprites.destroy(g)
+    }
+    let ghast_exists = false
 }
 
 function update_exp_status_bar() {
@@ -670,7 +678,7 @@ statusbars.onZero(StatusBarKind.EnemyHealth, function on_enemy_life_zero(bar: St
     
     music.thump.play()
     let sprite = bar.spriteAttachedTo()
-    if (zombie_list.indexOf(sprite) >= 0 && !ghast_exists) {
+    if (zombie_list.indexOf(sprite) >= 0) {
         stat_zombies_killed += 1
         player_exp += zombie_xp_reward
         blood_explosion(sprite.x, sprite.y)
@@ -758,33 +766,26 @@ function create_ghast() {
     ghast_sprite = sprites.create(assets.image`ghast_i`, SpriteKind.enemy)
     ghast_sprite.setPosition(player_sprite.x + RIGHT_BOUNDARY, ypos_ghast_sprite)
     animation.runImageAnimation(ghast_sprite, assets.animation`ghast`, 150, true)
-    //  Create and attach a status bar for the Ghast
     ghast_list.push(ghast_sprite)
     let ghast_statusbar = statusbars.create(16, 2, StatusBarKind.EnemyHealth)
     ghast_statusbar.setLabel("HP")
     ghast_statusbar.max = ghast_hp
     ghast_statusbar.value = ghast_hp
     ghast_statusbar.attachToSprite(ghast_sprite)
-    //  Define Ghast's follow behavior using a function reference
     game.onUpdateInterval(200, function update_ghast() {
         follow_player(ghast_sprite, ghast_speed)
     })
 }
 
-//  Function that updates the Ghast's behavior every interval
-//  Function to make the Ghast follow the player
 function follow_player(enemy_sprite: Sprite, ghast_speed: number) {
     let dx: number;
     let dy: number;
     let distance: number;
     if (enemy_sprite && player_sprite) {
-        //  Calculate direction towards the player
         dx = player_sprite.x - enemy_sprite.x
         dy = player_sprite.y - enemy_sprite.y
         distance = Math.sqrt(dx * dx + dy * dy)
-        //  Find the distance
         if (distance > 0) {
-            //  Normalize the vector and set velocity
             enemy_sprite.setVelocity(ghast_speed * (dx / distance), ghast_speed * (dy / distance))
         }
         

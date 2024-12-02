@@ -1,4 +1,3 @@
-
 # Main
 # Sprites
 player_sprite: Sprite = None
@@ -383,6 +382,7 @@ def remember_player_position(player_sprite:Sprite):
 def destroy_all():
     destroy_all_zombies()
     destroy_all_bullets()
+    destroy_all_ghasts()
     sprites.destroy(player_sprite)
 
 def show_game_lore(player_level):
@@ -430,15 +430,15 @@ def set_player_stats(level: int):
         "exp_required": 100 * level,
         "exp_punish": level,
 
-        "explosion_power": 25 + (level -3) * 5,
+        "explosion_power": 50 + (level -3) * 15,
         "explosion_particle_amt": 10 + (level -3) * 3,
-        "explosion_min_range":  15 + (level -1) * 5,
-        "explosion_max_range":  25 + (level -1) * 5,
+        "explosion_min_range":  30 + (level -1) * 7,
+        "explosion_max_range":  30 + (level -1) * 7,
 
-        "blood_explosion_power": 1 + (level -1),
+        "blood_explosion_power": 5 + (level -1) * 5,
         "blood_explosion_min_range":  15 + (level -1) * 5,
         "blood_explosion_max_range":  25 + (level -1) * 5,
-        "blood_explosion_particle_amt": 15 + (level -1) * 5,
+        "blood_explosion_particle_amt": 10 + (level -1) * 5,
     }
 
     player_hp = stats["hp"]
@@ -520,7 +520,6 @@ def destroy_zombies():
 
 def destroy_all_zombies():
     global zombie_list
-    global player_sprite
     for z in zombie_list:
         sprites.destroy(z)
 
@@ -529,6 +528,12 @@ def destroy_all_bullets():
     global player_sprite
     for b in bullet_list:
         sprites.destroy(b.sprite)
+
+def destroy_all_ghasts():
+    global ghast_list
+    for g in ghast_list:
+        sprites.destroy(g)
+    ghast_exists = False
 
 def update_exp_status_bar():
     global player_exp_required, player_exp, exp_status_bar
@@ -617,7 +622,7 @@ def on_enemy_life_zero(bar):
     global player_exp, zombie_xp_reward, stat_zombies_killed, ghast_xp_reward, stat_ghasts_killed, ghast_exists
     music.thump.play()
     sprite = bar.sprite_attached_to()
-    if sprite in zombie_list and not ghast_exists:
+    if sprite in zombie_list:
         stat_zombies_killed+=1
         player_exp += zombie_xp_reward
         blood_explosion(sprite.x,sprite.y)
@@ -706,7 +711,6 @@ def create_ghast():
         150,
         True)
     
-    # Create and attach a status bar for the Ghast
     ghast_list.push(ghast_sprite)
     ghast_statusbar = statusbars.create(16, 2, StatusBarKind.enemy_health)
     ghast_statusbar.set_label("HP")
@@ -714,23 +718,18 @@ def create_ghast():
     ghast_statusbar.value = ghast_hp
     ghast_statusbar.attach_to_sprite(ghast_sprite)
     
-    # Define Ghast's follow behavior using a function reference
     game.on_update_interval(200, update_ghast)
 
-# Function that updates the Ghast's behavior every interval
 def update_ghast():
     follow_player(ghast_sprite, ghast_speed)
 
-# Function to make the Ghast follow the player
 def follow_player(enemy_sprite: Sprite, ghast_speed: int):
     if enemy_sprite and player_sprite:
-        # Calculate direction towards the player
         dx = player_sprite.x - enemy_sprite.x
         dy = player_sprite.y - enemy_sprite.y
-        distance = Math.sqrt(dx * dx + dy * dy)  # Find the distance
+        distance = Math.sqrt(dx * dx + dy * dy)
         
         if distance > 0:
-            # Normalize the vector and set velocity
             enemy_sprite.set_velocity(ghast_speed * (dx / distance), ghast_speed * (dy / distance))
 
 
