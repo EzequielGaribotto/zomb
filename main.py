@@ -4,16 +4,18 @@
 player_sprite: Sprite = None
 zombie_sprite: Sprite = None
 bullet_sprite: Sprite = None
+ghast_sprite: Sprite = None
 
 # Sprite lists
 bullet_list:List[Bullet] = []
 zombie_list:List[Zombie] = []
+ghast_list:List[Ghast] = []
 deleted_zombies_list:List[Zombie] = []
 
 # Status bar Sprites
 exp_status_bar:StatusBarSprite = None
 statusbar: StatusBarSprite = None # Zombie sb
-
+ghast_status_bar:StatusBarSprite = None
 # Text Sprites
 title_sprite: TextSprite = None
 text_sprite: TextSprite = None
@@ -73,6 +75,9 @@ stat_damage_dealt = 0
 stat_lifes_won = 0
 stat_lifes_lost = 0
 
+# Ghast stats
+ghast_speed = 0
+
 # Classes
 @namespace
 class SpriteKind:
@@ -90,6 +95,10 @@ class Zombie:
         self.zombie_id = zombie_id
         self.sprite: Sprite = sprite
 
+class Ghast:
+    def __init__(self, sprite: Sprite, ghast_id: Number):
+        self.ghast_id = ghast_id
+        self.sprite: Sprite = sprite
 # main
 open_main_screen()
 
@@ -273,7 +282,7 @@ def zombie_cutscene():
     sprites.destroy(skip_lore_sprite)
     open_zombie_screen()
     story.start_cutscene(stats_cutscene)
-
+create_ghast()
 # Pantalla de juego
 def open_zombie_screen():
     initialize_game_data()
@@ -541,6 +550,49 @@ def create_zombie():
     statusbar.max = zombie_hp
     statusbar.value = zombie_hp
     statusbar.attachToSprite(zombie_sprite)
+
+def create_ghast():
+    global ghast_sprite, ghast_status_bar, ghast_speed
+    ghast_hp = 10  # Health points for the Ghast
+    ghast_speed = 30  # Speed of the Ghast
+    
+    # Create the Ghast sprite
+    ghast_sprite = sprites.create(assets.image("""ghast_i"""), SpriteKind.enemy)
+    ghast_sprite.set_position(randint(20, 160), randint(20, 120))  # Spawn randomly near player
+    
+    # Run an animation for the Ghast
+    animation.run_image_animation(ghast_sprite,
+        assets.animation("""ghast"""),
+        150,
+        True)
+    
+    # Create and attach a status bar for the Ghast
+    ghast_statusbar = statusbars.create(16, 2, StatusBarKind.enemy_health)
+    ghast_statusbar.set_label("HP")
+    ghast_statusbar.max = ghast_hp
+    ghast_statusbar.value = ghast_hp
+    ghast_statusbar.attach_to_sprite(ghast_sprite)
+    
+    # Define Ghast's follow behavior using a function reference
+    game.on_update_interval(200, update_ghast)
+
+# Function that updates the Ghast's behavior every interval
+def update_ghast():
+    follow_player(ghast_sprite, ghast_speed)
+
+# Function to make the Ghast follow the player
+def follow_player(enemy_sprite: Sprite, ghast_speed: int):
+    if enemy_sprite and player_sprite:
+        # Calculate direction towards the player
+        dx = player_sprite.x - enemy_sprite.x
+        dy = player_sprite.y - enemy_sprite.y
+        distance = Math.sqrt(dx * dx + dy * dy)  # Find the distance
+        
+        if distance > 0:
+            # Normalize the vector and set velocity
+            enemy_sprite.set_velocity(ghast_speed * (dx / distance), ghast_speed * (dy / distance))
+
+
 # Controls
 # Player movement
 # Up

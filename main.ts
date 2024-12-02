@@ -3,14 +3,17 @@
 let player_sprite : Sprite = null
 let zombie_sprite : Sprite = null
 let bullet_sprite : Sprite = null
+let ghast_sprite : Sprite = null
 //  Sprite lists
 let bullet_list : Bullet[] = []
 let zombie_list : Zombie[] = []
+let ghast_list : Ghast[] = []
 let deleted_zombies_list : Zombie[] = []
 //  Status bar Sprites
 let exp_status_bar : StatusBarSprite = null
 let statusbar : StatusBarSprite = null
 //  Zombie sb
+let ghast_status_bar : StatusBarSprite = null
 //  Text Sprites
 let title_sprite : TextSprite = null
 let text_sprite : TextSprite = null
@@ -60,6 +63,8 @@ let stat_zombies_killed = 0
 let stat_damage_dealt = 0
 let stat_lifes_won = 0
 let stat_lifes_lost = 0
+//  Ghast stats
+let ghast_speed = 0
 //  Classes
 namespace SpriteKind {
     export const projectile = SpriteKind.create()
@@ -82,6 +87,16 @@ class Zombie {
     sprite: Sprite
     constructor(sprite: Sprite, zombie_id: Number) {
         this.zombie_id = zombie_id
+        this.sprite = sprite
+    }
+    
+}
+
+class Ghast {
+    ghast_id: Number
+    sprite: Sprite
+    constructor(sprite: Sprite, ghast_id: Number) {
+        this.ghast_id = ghast_id
         this.sprite = sprite
     }
     
@@ -268,6 +283,7 @@ function create_skip_lore_sprite() {
     skip_lore_sprite.setPosition(80, 110)
 }
 
+create_ghast()
 //  Pantalla de juego
 function open_zombie_screen() {
     initialize_game_data()
@@ -568,6 +584,51 @@ function create_zombie() {
     statusbar.max = zombie_hp
     statusbar.value = zombie_hp
     statusbar.attachToSprite(zombie_sprite)
+}
+
+function create_ghast() {
+    
+    let ghast_hp = 10
+    //  Health points for the Ghast
+    ghast_speed = 30
+    //  Speed of the Ghast
+    //  Create the Ghast sprite
+    ghast_sprite = sprites.create(assets.image`ghast_i`, SpriteKind.enemy)
+    ghast_sprite.setPosition(randint(20, 160), randint(20, 120))
+    //  Spawn randomly near player
+    //  Run an animation for the Ghast
+    animation.runImageAnimation(ghast_sprite, assets.animation`ghast`, 150, true)
+    //  Create and attach a status bar for the Ghast
+    let ghast_statusbar = statusbars.create(16, 2, StatusBarKind.EnemyHealth)
+    ghast_statusbar.setLabel("HP")
+    ghast_statusbar.max = ghast_hp
+    ghast_statusbar.value = ghast_hp
+    ghast_statusbar.attachToSprite(ghast_sprite)
+    //  Define Ghast's follow behavior using a function reference
+    game.onUpdateInterval(200, function update_ghast() {
+        follow_player(ghast_sprite, ghast_speed)
+    })
+}
+
+//  Function that updates the Ghast's behavior every interval
+//  Function to make the Ghast follow the player
+function follow_player(enemy_sprite: Sprite, ghast_speed: number) {
+    let dx: number;
+    let dy: number;
+    let distance: number;
+    if (enemy_sprite && player_sprite) {
+        //  Calculate direction towards the player
+        dx = player_sprite.x - enemy_sprite.x
+        dy = player_sprite.y - enemy_sprite.y
+        distance = Math.sqrt(dx * dx + dy * dy)
+        //  Find the distance
+        if (distance > 0) {
+            //  Normalize the vector and set velocity
+            enemy_sprite.setVelocity(ghast_speed * (dx / distance), ghast_speed * (dy / distance))
+        }
+        
+    }
+    
 }
 
 //  Controls
