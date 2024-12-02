@@ -301,14 +301,13 @@ def initialize_game_data():
     scene.set_background_image(assets.image("""
             cityscape
         """))
-    global on_zombie_screen, on_menu, ypos_zombie_sprite, player_level, on_lore_screen, skip_lore_sprite, exp_status_bar, player_exp, player_exp_required, explosion_power
+    global on_zombie_screen, on_menu, ypos_zombie_sprite, player_level, on_lore_screen, skip_lore_sprite, exp_status_bar, player_exp, player_exp_required
     on_zombie_screen = True
     on_menu = False
     on_lore_screen = False
     #
     player_level = 1
     create_player()
-    explosion_power = 5
     story.sprite_say_text(player_sprite, "ostras pedrin")
     sprites.destroy(skip_lore_sprite)
     set_player_stats(player_level)
@@ -399,6 +398,7 @@ def set_player_stats(level: int):
     player_speed = stats["speed"]
     player_exp_required = stats["exp_required"]
     player_exp_punish = stats["exp_punish"]
+    explosion_power = stats["explosion_power"]
 
 
 def set_zombie_stats(level: int):

@@ -294,7 +294,6 @@ function initialize_game_data() {
     // 
     player_level = 1
     create_player()
-    explosion_power = 5
     story.spriteSayText(player_sprite, "ostras pedrin")
     sprites.destroy(skip_lore_sprite)
     set_player_stats(player_level)
@@ -407,6 +406,7 @@ function set_player_stats(level: number) {
     player_speed = stats["speed"]
     player_exp_required = stats["exp_required"]
     player_exp_punish = stats["exp_punish"]
+    explosion_power = stats["explosion_power"]
 }
 
 function set_zombie_stats(level: number) {
