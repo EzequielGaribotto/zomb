@@ -9,10 +9,11 @@ bullet_list:List[Bullet] = []
 zombie_list:List[Sprite] = []
 ghast_list:List[Sprite] = []
 deleted_zombies_list:List[Sprite] = []
+explosion_particle_list:List[Sprite] = []
 
 # Status bar Sprites
 exp_status_bar:StatusBarSprite = None
-statusbar: StatusBarSprite = None # Zombie sb
+zombie_statusbar: StatusBarSprite = None
 ghast_status_bar:StatusBarSprite = None
 
 # Text Sprites
@@ -324,23 +325,25 @@ def initialize_game_data():
     set_player_stats(player_level)
     set_zombie_stats(player_level)
     set_ghast_stats(player_level)
-    exp_status_bar = statusbars.create(20, 4, StatusBarKind.Energy)
-    exp_status_bar.position_direction(CollisionDirection.TOP)
-
+    create_exp_status_bar()
     game.on_update(on_on_update)
     info.set_life(3)
 
+def create_exp_status_bar():
+    global exp_status_bar
+    exp_status_bar = statusbars.create(40, 4, StatusBarKind.Energy)
+    exp_status_bar.position_direction(CollisionDirection.TOP)
 # Funcion recursiva para crear zombies en funcion del nivel
 def gamer():
     global delay_min_enemies, delay_max_enemies, player_exp, player_exp_required, player_hp
     update_exp_status_bar()
     if (player_level == 11): # Caso base 1
-        game_over()
         music.power_up.play()
+        game_over()
         return
     if (info.life() == 0): # Caso base 2
-        game_over()
         music.spooky.play()
+        game_over()
         return
     if (on_stats_screen):
         return
@@ -369,8 +372,10 @@ def next_level():
     remember_player_position(player_sprite)
     destroy_all()
     game.splash("Level Up! - " + player_level)
+    pause(1000)
     show_game_lore(player_level)
     create_player()
+    create_exp_status_bar()
     player_sprite.set_position(remembered_player_x, remembered_player_y)
     gamer()
 
@@ -383,7 +388,9 @@ def destroy_all():
     destroy_all_zombies()
     destroy_all_bullets()
     destroy_all_ghasts()
+    destroy_all_explosion_particles()
     sprites.destroy(player_sprite)
+    sprites.destroy(exp_status_bar)
 
 def show_game_lore(player_level):
     if player_level == 2:
@@ -535,6 +542,11 @@ def destroy_all_ghasts():
         sprites.destroy(g)
     ghast_exists = False
 
+def destroy_all_explosion_particles():
+    global explosion_particle_list
+    for p in explosion_particle_list:
+        sprites.destroy(p)
+
 def update_exp_status_bar():
     global player_exp_required, player_exp, exp_status_bar
     exp_status_bar.max = player_exp_required
@@ -586,8 +598,8 @@ def on_projectile_collision(bullet, zombie):
     stat_damage_dealt+=player_power
     animate_bullet_collision(bullet)
     play_custom_hit_sound()
-    statusbar = statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, zombie)
-    if (statusbar): statusbar.value += -player_power
+    zombie_statusbar = statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, zombie)
+    if (zombie_statusbar): zombie_statusbar.value += -player_power
     if (zombie): zombie.set_velocity(-zombie_stun_speed, 0)
     pause(zombie_stun_duration)
     if (zombie): zombie.set_velocity(-zombie_speed, 0)
@@ -625,11 +637,13 @@ def on_enemy_life_zero(bar):
     if sprite in zombie_list:
         stat_zombies_killed+=1
         player_exp += zombie_xp_reward
+        sprite.set_velocity(0, 0)
         blood_explosion(sprite.x,sprite.y)
     elif ghast_exists:
         if sprite in ghast_list:
             stat_ghasts_killed+=1
             player_exp += ghast_xp_reward
+            sprite.set_velocity(0, 0)
             ghast_exists = False
             explosion(sprite.x, sprite.y)
 
@@ -682,7 +696,7 @@ def create_player():
     scroller.set_camera_scrolling_multipliers(1, 0)
 
 def create_zombie():
-    global zombie_hp, zombie_sprite, ypos_zombie_sprite, statusbar
+    global zombie_hp, zombie_sprite, ypos_zombie_sprite, zombie_statusbar
     ypos_zombie_sprite = randint(20, 110)
     zombie_sprite = sprites.create(assets.image("""zombie_enemy"""), SpriteKind.enemy)
     zombie_sprite.set_position(player_sprite.x + RIGHT_BOUNDARY, ypos_zombie_sprite)
@@ -693,11 +707,11 @@ def create_zombie():
         True)
     zombie_sprite.set_velocity(-zombie_speed, 0)
     zombie_list.push(zombie_sprite)
-    statusbar = statusbars.create(16, 2, StatusBarKind.enemy_health)
-    statusbar.set_label("HP")
-    statusbar.max = zombie_hp
-    statusbar.value = zombie_hp
-    statusbar.attachToSprite(zombie_sprite)
+    zombie_statusbar = statusbars.create(16, 2, StatusBarKind.enemy_health)
+    zombie_statusbar.set_label("HP")
+    zombie_statusbar.max = zombie_hp
+    zombie_statusbar.value = zombie_hp
+    zombie_statusbar.attachToSprite(zombie_sprite)
 
 def create_ghast():
     global ghast_sprite, ghast_status_bar, ghast_speed, ypos_ghast_sprite, ghast_hp, ghast_exists
@@ -1277,14 +1291,15 @@ def skip_lore():
 
 # Función para crear la explosión
 def explosion(x: int, y: int):
-    global explosion_particle_amt
+    global explosion_particle_amt, explosion_particle_list
     blood_explosion_sound()
     for i in range(explosion_particle_amt):
         blood = sprites.create(img("""
                     . . .
-                    . 7 4
+                    . 2 4
                     . . .
         """), SpriteKind.explosion)
+        explosion_particle_list.push(blood)
         blood.x = x
         blood.y = y
 
@@ -1309,7 +1324,7 @@ def blood_explosion(x: int, y: int):
         """), SpriteKind.blood_explosion)
         blood.x = x
         blood.y = y
-
+        explosion_particle_list.push(blood)
         angle = Math.random_range(0, 360)
         
         radians = angle * Math.PI / 180

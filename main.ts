@@ -9,10 +9,10 @@ let bullet_list : Bullet[] = []
 let zombie_list : Sprite[] = []
 let ghast_list : Sprite[] = []
 let deleted_zombies_list : Sprite[] = []
+let explosion_particle_list : Sprite[] = []
 //  Status bar Sprites
 let exp_status_bar : StatusBarSprite = null
-let statusbar : StatusBarSprite = null
-//  Zombie sb
+let zombie_statusbar : StatusBarSprite = null
 let ghast_status_bar : StatusBarSprite = null
 //  Text Sprites
 let title_sprite : TextSprite = null
@@ -312,8 +312,7 @@ function initialize_game_data() {
     set_player_stats(player_level)
     set_zombie_stats(player_level)
     set_ghast_stats(player_level)
-    exp_status_bar = statusbars.create(20, 4, StatusBarKind.Energy)
-    exp_status_bar.positionDirection(CollisionDirection.Top)
+    create_exp_status_bar()
     game.onUpdate(function on_on_update() {
         let target_x: number;
         
@@ -334,21 +333,27 @@ function initialize_game_data() {
     info.setLife(3)
 }
 
+function create_exp_status_bar() {
+    
+    exp_status_bar = statusbars.create(40, 4, StatusBarKind.Energy)
+    exp_status_bar.positionDirection(CollisionDirection.Top)
+}
+
 //  Funcion recursiva para crear zombies en funcion del nivel
 function gamer() {
     
     update_exp_status_bar()
     if (player_level == 11) {
         //  Caso base 1
-        game_over()
         music.powerUp.play()
+        game_over()
         return
     }
     
     if (info.life() == 0) {
         //  Caso base 2
-        game_over()
         music.spooky.play()
+        game_over()
         return
     }
     
@@ -393,8 +398,10 @@ function next_level() {
     remember_player_position(player_sprite)
     destroy_all()
     game.splash("Level Up! - " + player_level)
+    pause(1000)
     show_game_lore(player_level)
     create_player()
+    create_exp_status_bar()
     player_sprite.setPosition(remembered_player_x, remembered_player_y)
     gamer()
 }
@@ -409,7 +416,9 @@ function destroy_all() {
     destroy_all_zombies()
     destroy_all_bullets()
     destroy_all_ghasts()
+    destroy_all_explosion_particles()
     sprites.destroy(player_sprite)
+    sprites.destroy(exp_status_bar)
 }
 
 function show_game_lore(player_level: number) {
@@ -580,6 +589,13 @@ function destroy_all_ghasts() {
     let ghast_exists = false
 }
 
+function destroy_all_explosion_particles() {
+    
+    for (let p of explosion_particle_list) {
+        sprites.destroy(p)
+    }
+}
+
 function update_exp_status_bar() {
     
     exp_status_bar.max = player_exp_required
@@ -638,9 +654,9 @@ sprites.onOverlap(SpriteKind.projectile, SpriteKind.enemy, function on_projectil
     stat_damage_dealt += player_power
     animate_bullet_collision(bullet)
     play_custom_hit_sound()
-    let statusbar = statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, zombie)
-    if (statusbar) {
-        statusbar.value += -player_power
+    let zombie_statusbar = statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, zombie)
+    if (zombie_statusbar) {
+        zombie_statusbar.value += -player_power
     }
     
     if (zombie) {
@@ -681,11 +697,13 @@ statusbars.onZero(StatusBarKind.EnemyHealth, function on_enemy_life_zero(bar: St
     if (zombie_list.indexOf(sprite) >= 0) {
         stat_zombies_killed += 1
         player_exp += zombie_xp_reward
+        sprite.setVelocity(0, 0)
         blood_explosion(sprite.x, sprite.y)
     } else if (ghast_exists) {
         if (ghast_list.indexOf(sprite) >= 0) {
             stat_ghasts_killed += 1
             player_exp += ghast_xp_reward
+            sprite.setVelocity(0, 0)
             ghast_exists = false
             explosion(sprite.x, sprite.y)
         }
@@ -752,11 +770,11 @@ function create_zombie() {
     animation.runImageAnimation(zombie_sprite, assets.animation`zombie_anim`, 100, true)
     zombie_sprite.setVelocity(-zombie_speed, 0)
     zombie_list.push(zombie_sprite)
-    statusbar = statusbars.create(16, 2, StatusBarKind.EnemyHealth)
-    statusbar.setLabel("HP")
-    statusbar.max = zombie_hp
-    statusbar.value = zombie_hp
-    statusbar.attachToSprite(zombie_sprite)
+    zombie_statusbar = statusbars.create(16, 2, StatusBarKind.EnemyHealth)
+    zombie_statusbar.setLabel("HP")
+    zombie_statusbar.max = zombie_hp
+    zombie_statusbar.value = zombie_hp
+    zombie_statusbar.attachToSprite(zombie_sprite)
 }
 
 function create_ghast() {
@@ -1311,9 +1329,10 @@ function explosion(x: number, y: number) {
     for (let i = 0; i < explosion_particle_amt; i++) {
         blood = sprites.create(img`
                     . . .
-                    . 7 4
+                    . 2 4
                     . . .
         `, SpriteKind.explosion)
+        explosion_particle_list.push(blood)
         blood.x = x
         blood.y = y
         angle = Math.randomRange(0, 360)
@@ -1339,6 +1358,7 @@ function blood_explosion(x: number, y: number) {
         `, SpriteKind.blood_explosion)
         blood.x = x
         blood.y = y
+        explosion_particle_list.push(blood)
         angle = Math.randomRange(0, 360)
         radians = angle * Math.PI / 180
         blood.vx = Math.cos(radians) * Math.randomRange(blood_explosion_min_range, blood_explosion_max_range)
