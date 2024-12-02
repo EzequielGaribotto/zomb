@@ -36,12 +36,13 @@ let ypos_zombie_sprite = 0
 let zombie_xp_reward = 0
 //  Explosion stats
 let explosion_power = 0
-let stat_explosion_damage = 0
 let explosion_particle_amt = 0
+let explosion_min_range = 0
+let explosion_max_range = 0
 let blood_explosion_power = 0
-let stat_blood_explosion_damage = 0
 let blood_explosion_particle_amt = 0
-let accumulated_explosion_damage = 0
+let blood_explosion_min_range = 0
+let blood_explosion_max_range = 0
 //  Player Stats
 let direction = ""
 let player_level = 0
@@ -68,6 +69,9 @@ let stat_shots = 0
 let stat_missed_shots = 0
 let stat_precission = 0
 let stat_accurate_shots = 0
+let stat_blood_explosion_damage = 0
+let stat_explosion_damage = 0
+let accumulated_explosion_damage = 0
 let stat_zombies_escaped = 0
 let stat_zombies_killed = 0
 let stat_ghasts_killed = 0
@@ -81,8 +85,11 @@ let ghast_hp = 0
 let ypos_ghast_sprite = 0
 let ghast_exists = false
 //  Timers
+let zombie_timer = game.runtime()
 let ghast_timer = game.runtime()
 let footstep_timer = game.runtime()
+let remembered_player_x = 20
+let remembered_player_y = 60
 //  Classes
 namespace SpriteKind {
     export const projectile = SpriteKind.create()
@@ -307,12 +314,20 @@ function initialize_game_data() {
     set_ghast_stats(player_level)
     exp_status_bar = statusbars.create(20, 4, StatusBarKind.Energy)
     exp_status_bar.positionDirection(CollisionDirection.Top)
-    controller.moveSprite(player_sprite)
-    player_sprite.setStayInScreen(true)
-    effects.starField.startScreenEffect()
-    scroller.setCameraScrollingMultipliers(1, 0)
     game.onUpdate(function on_on_update() {
-        scene.centerCameraAt(player_sprite.x + 50, 60)
+        let target_x: number;
+        
+        let smoothing_factor = 0.1
+        if (ghast_exists && Math.abs(ghast_sprite.x - player_sprite.x) < 80) {
+            target_x = (player_sprite.x + ghast_sprite.x) / 2
+            player_sprite.setStayInScreen(false)
+        } else {
+            target_x = player_sprite.x + 50
+            player_sprite.setStayInScreen(true)
+        }
+        
+        current_camera_x += (target_x - current_camera_x) * smoothing_factor
+        scene.centerCameraAt(current_camera_x, 60)
         set_boundaries()
         play_foot_step()
     })
@@ -323,12 +338,26 @@ function initialize_game_data() {
 function gamer() {
     
     update_exp_status_bar()
+    if (player_level == 11) {
+        //  Caso base 1
+        game_over()
+        music.powerUp.play()
+        return
+    }
+    
+    if (info.life() == 0) {
+        //  Caso base 2
+        game_over()
+        music.spooky.play()
+        return
+    }
+    
+    if (on_stats_screen) {
+        return
+    }
+    
     while (player_exp < player_exp_required && info.life() > 0) {
-        if (on_stats_screen) {
-            return
-        }
-        
-        pause(randint(delay_min_enemies, delay_max_enemies))
+        pause(1)
         destroy_zombies()
         destroy_bullets()
         if (player_exp < player_exp_required && info.life() > 0) {
@@ -348,15 +377,11 @@ function next_level() {
     
     if (player_level == 11) {
         //  Caso base 1
-        game_over()
-        music.powerUp.play()
         return
     }
     
     if (info.life() == 0) {
         //  Caso base 2
-        game_over()
-        music.spooky.play()
         return
     }
     
@@ -365,11 +390,25 @@ function next_level() {
     set_zombie_stats(player_level)
     set_player_stats(player_level)
     music.baDing.play()
+    remember_player_position(player_sprite)
+    destroy_all()
     game.splash("Level Up! - " + player_level)
     show_game_lore(player_level)
+    create_player()
+    player_sprite.setPosition(remembered_player_x, remembered_player_y)
+    gamer()
+}
+
+function remember_player_position(player_sprite: Sprite) {
+    
+    remembered_player_x = player_sprite.x
+    remembered_player_y = player_sprite.y
+}
+
+function destroy_all() {
     destroy_all_zombies()
     destroy_all_bullets()
-    gamer()
+    sprites.destroy(player_sprite)
 }
 
 function show_game_lore(player_level: number) {
@@ -402,9 +441,11 @@ function show_game_lore(player_level: number) {
         game.showLongText("Todo apunta a esto: el refugio guarda un oscuro secreto.", DialogLayout.Bottom)
     }
     
+    scene.setBackgroundImage(assets.image`cityscape`)
 }
 
 function set_player_stats(level: number) {
+    
     
     if (info.life() < 3) {
         info.changeLifeBy(+1)
@@ -417,10 +458,14 @@ function set_player_stats(level: number) {
         "speed" : 200 + (level - 1) * 10,
         "exp_required" : 100 * level,
         "exp_punish" : level,
-        "explosion_power" : 5 + (level - 1),
+        "explosion_power" : 25 + (level - 3) * 5,
+        "explosion_particle_amt" : 10 + (level - 3) * 3,
+        "explosion_min_range" : 15 + (level - 1) * 5,
+        "explosion_max_range" : 25 + (level - 1) * 5,
         "blood_explosion_power" : 1 + (level - 1),
-        "explosion_particle_amt" : 20 + (level - 3) * 3,
-        "blood_explosion_particle_amt" : 25 + (level - 1) * 5,
+        "blood_explosion_min_range" : 15 + (level - 1) * 5,
+        "blood_explosion_max_range" : 25 + (level - 1) * 5,
+        "blood_explosion_particle_amt" : 15 + (level - 1) * 5,
     }
     
     player_hp = stats["hp"]
@@ -429,9 +474,13 @@ function set_player_stats(level: number) {
     player_exp_required = stats["exp_required"]
     player_exp_punish = stats["exp_punish"]
     explosion_power = stats["explosion_power"]
-    blood_explosion_power = stats["blood_explosion_power"]
     explosion_particle_amt = stats["explosion_particle_amt"]
+    explosion_min_range = stats["explosion_min_range"]
+    explosion_max_range = stats["explosion_max_range"]
+    blood_explosion_power = stats["blood_explosion_power"]
     blood_explosion_particle_amt = stats["blood_explosion_particle_amt"]
+    blood_explosion_min_range = stats["blood_explosion_min_range"]
+    blood_explosion_max_range = stats["blood_explosion_max_range"]
 }
 
 function set_zombie_stats(level: number) {
@@ -479,7 +528,7 @@ function destroy_bullets() {
     
     
     for (let b of bullet_list) {
-        if (b.sprite.x < LEFT_BOUNDARY + player_sprite.x || b.sprite.x > RIGHT_BOUNDARY + player_sprite.x || b.sprite.y > BOTTOM_BOUNDARY + player_sprite.y || b.sprite.y < TOP_BOUNDARY + player_sprite.y) {
+        if (b.sprite.x < LEFT_BOUNDARY - player_sprite.x || b.sprite.x > RIGHT_BOUNDARY + player_sprite.x || b.sprite.y > BOTTOM_BOUNDARY + player_sprite.y || b.sprite.y < TOP_BOUNDARY - player_sprite.y) {
             sprites.destroy(b.sprite)
         }
         
@@ -642,12 +691,15 @@ info.onLifeZero(function on_life_zero() {
     game_over()
 })
 function create_enemy() {
-    let current_time: number;
     
     
-    create_zombie()
-    if (player_level >= 3 && !ghast_exists) {
-        current_time = game.runtime()
+    let current_time = game.runtime()
+    if (current_time - zombie_timer > randint(delay_min_enemies, delay_max_enemies)) {
+        create_zombie()
+        zombie_timer = current_time
+    }
+    
+    if (player_level >= 1 && !ghast_exists) {
         if (current_time - ghast_timer > randint(delay_min_ghast, delay_max_ghast)) {
             create_ghast()
             ghast_timer = current_time
@@ -677,9 +729,11 @@ function create_player() {
                                         . . . . . . f f f f f f . . . .
                                         . . . . . . . f f f . . . . . .
         `, SpriteKind.player)
-    player_sprite.setPosition(10, 60)
-    player_sprite.setVelocity(player_speed, 0)
-    direction = "right"
+    player_sprite.setPosition(remembered_player_x, remembered_player_y)
+    controller.moveSprite(player_sprite)
+    player_sprite.setStayInScreen(true)
+    effects.starField.startScreenEffect()
+    scroller.setCameraScrollingMultipliers(1, 0)
 }
 
 function create_zombie() {
@@ -1249,18 +1303,22 @@ function skip_lore() {
 //  Función para crear la explosión
 function explosion(x: number, y: number) {
     let blood: Sprite;
+    let angle: number;
+    let radians: number;
     
     blood_explosion_sound()
     for (let i = 0; i < explosion_particle_amt; i++) {
         blood = sprites.create(img`
-            . . .
-            . 2 4
-            . . .
+                    . . .
+                    . 7 4
+                    . . .
         `, SpriteKind.explosion)
         blood.x = x
         blood.y = y
-        blood.vx = Math.randomRange(-25, 25)
-        blood.vy = Math.randomRange(-25, 25)
+        angle = Math.randomRange(0, 360)
+        radians = angle * Math.PI / 180
+        blood.vx = Math.cos(radians) * Math.randomRange(explosion_min_range, explosion_max_range)
+        blood.vy = Math.sin(radians) * Math.randomRange(explosion_min_range, explosion_max_range)
         blood.setFlag(SpriteFlag.AutoDestroy, true)
         blood.lifespan = Math.randomRange(800, 1000)
     }
@@ -1277,15 +1335,15 @@ function blood_explosion(x: number, y: number) {
             . . .
             . 7 4
             . . .
-        `, SpriteKind.projectile)
+        `, SpriteKind.blood_explosion)
         blood.x = x
         blood.y = y
         angle = Math.randomRange(0, 360)
         radians = angle * Math.PI / 180
-        blood.vx = Math.cos(radians) * Math.randomRange(15, 20)
-        blood.vy = Math.sin(radians) * Math.randomRange(15, 20)
+        blood.vx = Math.cos(radians) * Math.randomRange(blood_explosion_min_range, blood_explosion_max_range)
+        blood.vy = Math.sin(radians) * Math.randomRange(blood_explosion_min_range, blood_explosion_max_range)
         blood.setFlag(SpriteFlag.AutoDestroy, true)
-        blood.lifespan = Math.randomRange(500, 1000)
+        blood.lifespan = Math.randomRange(800, 1000)
     }
 }
 
@@ -1295,6 +1353,7 @@ function animate_bullet_collision(bullet: any) {
     sprites.destroy(bullet)
 }
 
+let current_camera_x = 0
 function set_boundaries() {
     if (player_sprite.x < 0) {
         player_sprite.x = 0

@@ -15,6 +15,7 @@ deleted_zombies_list:List[Sprite] = []
 exp_status_bar:StatusBarSprite = None
 statusbar: StatusBarSprite = None # Zombie sb
 ghast_status_bar:StatusBarSprite = None
+
 # Text Sprites
 title_sprite: TextSprite = None
 text_sprite: TextSprite = None
@@ -41,14 +42,14 @@ zombie_xp_reward = 0
 
 # Explosion stats
 explosion_power = 0
-stat_explosion_damage = 0
 explosion_particle_amt = 0
+explosion_min_range = 0
+explosion_max_range = 0
 
 blood_explosion_power = 0
-stat_blood_explosion_damage = 0
 blood_explosion_particle_amt = 0
-
-accumulated_explosion_damage = 0
+blood_explosion_min_range = 0
+blood_explosion_max_range = 0
 
 # Player Stats
 direction = ""
@@ -79,7 +80,9 @@ stat_shots = 0
 stat_missed_shots = 0
 stat_precission = 0
 stat_accurate_shots = 0
-
+stat_blood_explosion_damage = 0
+stat_explosion_damage = 0
+accumulated_explosion_damage = 0
 
 stat_zombies_escaped = 0
 stat_zombies_killed = 0
@@ -96,10 +99,12 @@ ypos_ghast_sprite = 0
 ghast_exists = False
 
 # Timers
+zombie_timer = game.runtime()
 ghast_timer = game.runtime()
 footstep_timer = game.runtime()
 
-
+remembered_player_x = 20
+remembered_player_y = 60
 
 # Classes
 @namespace
@@ -322,10 +327,7 @@ def initialize_game_data():
     set_ghast_stats(player_level)
     exp_status_bar = statusbars.create(20, 4, StatusBarKind.Energy)
     exp_status_bar.position_direction(CollisionDirection.TOP)
-    controller.move_sprite(player_sprite)
-    player_sprite.set_stay_in_screen(True)
-    effects.star_field.start_screen_effect()
-    scroller.set_camera_scrolling_multipliers(1, 0)
+
     game.on_update(on_on_update)
     info.set_life(3)
 
@@ -333,22 +335,6 @@ def initialize_game_data():
 def gamer():
     global delay_min_enemies, delay_max_enemies, player_exp, player_exp_required, player_hp
     update_exp_status_bar()
-    while player_exp < player_exp_required and info.life() > 0:
-        if (on_stats_screen):
-            return
-        pause(randint(delay_min_enemies, delay_max_enemies))
-
-        destroy_zombies()
-        destroy_bullets()
-        if player_exp < player_exp_required and info.life() > 0:
-            create_enemy()
-        else:
-            next_level()
-
-def next_level():
-    global player_level, player_exp
-    if (info.life() > 0):
-        player_level += 1
     if (player_level == 11): # Caso base 1
         game_over()
         music.power_up.play()
@@ -357,17 +343,47 @@ def next_level():
         game_over()
         music.spooky.play()
         return
+    if (on_stats_screen):
+        return
+    while player_exp < player_exp_required and info.life() > 0:
+        pause(1)
+        destroy_zombies()
+        destroy_bullets()
+        if player_exp < player_exp_required and info.life() > 0:
+            create_enemy()
+        else:
+            next_level()
+
+def next_level():
+    global player_level, player_exp, player_sprite, remembered_player_x, remembered_player_y
+    if (info.life() > 0):
+        player_level += 1
+    if (player_level == 11): # Caso base 1
+        return
+    if (info.life() == 0): # Caso base 2
+        return
     player_exp = 0
     update_exp_status_bar()
     set_zombie_stats(player_level)
     set_player_stats(player_level)
     music.ba_ding.play()
+    remember_player_position(player_sprite)
+    destroy_all()
     game.splash("Level Up! - " + player_level)
     show_game_lore(player_level)
-    destroy_all_zombies()
-    destroy_all_bullets()
+    create_player()
+    player_sprite.set_position(remembered_player_x, remembered_player_y)
     gamer()
 
+def remember_player_position(player_sprite:Sprite):
+    global remembered_player_x, remembered_player_y
+    remembered_player_x = player_sprite.x
+    remembered_player_y = player_sprite.y
+
+def destroy_all():
+    destroy_all_zombies()
+    destroy_all_bullets()
+    sprites.destroy(player_sprite)
 
 def show_game_lore(player_level):
     if player_level == 2:
@@ -398,8 +414,11 @@ def show_game_lore(player_level):
     elif player_level == 10:
         scene.set_background_image(assets.image("""lore_level_10_1"""))
         game.show_long_text("Todo apunta a esto: el refugio guarda un oscuro secreto.", DialogLayout.BOTTOM)
+    scene.set_background_image(assets.image("""cityscape"""))
+
 def set_player_stats(level: int):
     global player_hp, player_power, player_speed, player_exp_required, stat_lifes_won, player_exp_punish, explosion_power, blood_explosion_power, explosion_particle_amt, blood_explosion_particle_amt
+    global blood_explosion_max_range, blood_explosion_min_range, explosion_min_range, explosion_max_range
     if info.life() < 3:
         info.change_life_by(+1)
         stat_lifes_won += 1
@@ -410,10 +429,16 @@ def set_player_stats(level: int):
         "speed": 200 + (level - 1) * 10,
         "exp_required": 100 * level,
         "exp_punish": level,
-        "explosion_power": 5 + (level -1),
+
+        "explosion_power": 25 + (level -3) * 5,
+        "explosion_particle_amt": 10 + (level -3) * 3,
+        "explosion_min_range":  15 + (level -1) * 5,
+        "explosion_max_range":  25 + (level -1) * 5,
+
         "blood_explosion_power": 1 + (level -1),
-        "explosion_particle_amt": 20 + (level -3) * 3,
-        "blood_explosion_particle_amt": 25 + (level -1) * 5
+        "blood_explosion_min_range":  15 + (level -1) * 5,
+        "blood_explosion_max_range":  25 + (level -1) * 5,
+        "blood_explosion_particle_amt": 15 + (level -1) * 5,
     }
 
     player_hp = stats["hp"]
@@ -422,9 +447,14 @@ def set_player_stats(level: int):
     player_exp_required = stats["exp_required"]
     player_exp_punish = stats["exp_punish"]
     explosion_power = stats["explosion_power"]
-    blood_explosion_power = stats["blood_explosion_power"]
     explosion_particle_amt = stats["explosion_particle_amt"]
+    explosion_min_range = stats["explosion_min_range"]
+    explosion_max_range = stats["explosion_max_range"]
+
+    blood_explosion_power = stats["blood_explosion_power"]
     blood_explosion_particle_amt = stats["blood_explosion_particle_amt"]
+    blood_explosion_min_range = stats["blood_explosion_min_range"]
+    blood_explosion_max_range = stats["blood_explosion_max_range"]
 
 
 def set_zombie_stats(level: int):
@@ -471,7 +501,7 @@ def destroy_bullets():
     global bullet_list
     global player_sprite
     for b in bullet_list:
-        if b.sprite.x < LEFT_BOUNDARY + player_sprite.x or b.sprite.x > RIGHT_BOUNDARY + player_sprite.x or b.sprite.y > BOTTOM_BOUNDARY + player_sprite.y or b.sprite.y < TOP_BOUNDARY + player_sprite.y:
+        if b.sprite.x < LEFT_BOUNDARY - player_sprite.x or b.sprite.x > RIGHT_BOUNDARY + player_sprite.x or b.sprite.y > BOTTOM_BOUNDARY + player_sprite.y or b.sprite.y < TOP_BOUNDARY - player_sprite.y:
             sprites.destroy(b.sprite)
 
 def destroy_zombies():
@@ -609,16 +639,18 @@ info.on_life_zero(on_life_zero)
 
 def create_enemy():
     global player_level, ghast_exists, delay_min_ghast, delay_max_ghast
-    global ghast_timer
-    create_zombie()
-    if (player_level >= 3 and not ghast_exists):
-        current_time = game.runtime()
+    global ghast_timer, zombie_timer
+    current_time = game.runtime()
+    if (current_time - zombie_timer > randint(delay_min_enemies, delay_max_enemies)):
+        create_zombie()
+        zombie_timer = current_time
+    if (player_level >= 1 and not ghast_exists):
         if (current_time - ghast_timer > randint(delay_min_ghast, delay_max_ghast)):
             create_ghast()
             ghast_timer = current_time
 
 def create_player():
-    global player_sprite, direction
+    global player_sprite, direction, remembered_player_x, remembered_player_y
     player_sprite = sprites.create(img("""
             . . . . . . f f f f f f . . . .
                                         . . . . f f e e e e f 2 f . . .
@@ -638,9 +670,11 @@ def create_player():
                                         . . . . . . . f f f . . . . . .
         """),
         SpriteKind.player)
-    player_sprite.set_position(10, 60)
-    player_sprite.set_velocity(player_speed, 0)
-    direction = "right"
+    player_sprite.set_position(remembered_player_x, remembered_player_y)
+    controller.move_sprite(player_sprite)
+    player_sprite.set_stay_in_screen(True)
+    effects.star_field.start_screen_effect()
+    scroller.set_camera_scrolling_multipliers(1, 0)
 
 def create_zombie():
     global zombie_hp, zombie_sprite, ypos_zombie_sprite, statusbar
@@ -1248,14 +1282,20 @@ def explosion(x: int, y: int):
     blood_explosion_sound()
     for i in range(explosion_particle_amt):
         blood = sprites.create(img("""
-            . . .
-            . 2 4
-            . . .
+                    . . .
+                    . 7 4
+                    . . .
         """), SpriteKind.explosion)
         blood.x = x
         blood.y = y
-        blood.vx = Math.random_range(-25, 25)
-        blood.vy = Math.random_range(-25, 25)
+
+        angle = Math.random_range(0, 360)
+        
+        radians = angle * Math.PI / 180
+        
+        blood.vx = Math.cos(radians) * Math.random_range(explosion_min_range, explosion_max_range)
+        blood.vy = Math.sin(radians) * Math.random_range(explosion_min_range, explosion_max_range)
+
         blood.set_flag(SpriteFlag.AUTO_DESTROY, True)
         blood.lifespan = Math.random_range(800, 1000)
 
@@ -1267,7 +1307,7 @@ def blood_explosion(x: int, y: int):
             . . .
             . 7 4
             . . .
-        """), SpriteKind.projectile)
+        """), SpriteKind.blood_explosion)
         blood.x = x
         blood.y = y
 
@@ -1275,11 +1315,11 @@ def blood_explosion(x: int, y: int):
         
         radians = angle * Math.PI / 180
         
-        blood.vx = Math.cos(radians) * Math.random_range(15, 20)
-        blood.vy = Math.sin(radians) * Math.random_range(15, 20)
+        blood.vx = Math.cos(radians) * Math.random_range(blood_explosion_min_range, blood_explosion_max_range)
+        blood.vy = Math.sin(radians) * Math.random_range(blood_explosion_min_range, blood_explosion_max_range)
 
         blood.set_flag(SpriteFlag.AUTO_DESTROY, True)
-        blood.lifespan = Math.random_range(500, 1000)
+        blood.lifespan = Math.random_range(800, 1000)
 
 controller.A.on_event(ControllerButtonEvent.PRESSED, on_a_pressed)
 
@@ -1287,10 +1327,25 @@ controller.A.on_event(ControllerButtonEvent.PRESSED, on_a_pressed)
 def animate_bullet_collision(bullet):
     sprites.destroy(bullet)
 
+current_camera_x = 0
+
 def on_on_update():
-    scene.center_camera_at(player_sprite.x + 50, 60)
+    global current_camera_x
+    smoothing_factor = 0.1
+
+    if ghast_exists and abs(ghast_sprite.x - player_sprite.x) < 80:
+        target_x = (player_sprite.x + ghast_sprite.x) / 2
+        player_sprite.set_stay_in_screen(False)
+    else:
+        target_x = player_sprite.x + 50
+        player_sprite.set_stay_in_screen(True)
+
+    current_camera_x += (target_x - current_camera_x) * smoothing_factor
+    scene.center_camera_at(current_camera_x, 60)
+
     set_boundaries()
     play_foot_step()
+
 
 def set_boundaries():
     if player_sprite.x < 0:
