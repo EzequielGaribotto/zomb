@@ -9,7 +9,10 @@
         "sprite-scaling": "*",
         "pxt-status-bar": "github:jwunderl/pxt-status-bar#v0.4.2",
         "darts": "*",
-        "arcade-story": "github:microsoft/arcade-storytelling#v1.0.3"
+        "arcade-story": "github:microsoft/arcade-storytelling#v1.0.3",
+        "controller": "*",
+        "servo": "*",
+        "feather": "*"
     },
     "files": [
         "main.blocks",

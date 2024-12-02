@@ -344,26 +344,6 @@ function next_level() {
     
     if (info.life() > 0) {
         player_level += 1
-        if (player_level == 2) {
-            story.printDialog("La enfermedad comenzó en silencio... nadie vio venir el caos.", 80, 90, 50, 150)
-        } else if (player_level == 3) {
-            story.printDialog("Los primeros infectados eran lentos, ahora son más rápidos y letales.", 80, 90, 50, 150)
-        } else if (player_level == 4) {
-            story.printDialog("Alex recuerda su hogar, pero ya no queda nada de él", 80, 90, 50, 150)
-        } else if (player_level == 5) {
-            story.printDialog("Un rumor dice que un refugio seguro existe al este... ¿será cierto?", 80, 90, 50, 150)
-        } else if (player_level == 6) {
-            story.printDialog("La infección avanza más rápido que cualquier cura posible.", 80, 90, 50, 150)
-        } else if (player_level == 7) {
-            story.printDialog("Encontré un diario... alguien intentó detener esto, pero fracasó.", 80, 90, 50, 150)
-        } else if (player_level == 8) {
-            story.printDialog("El Micro:bit interceptó una señal: 'Refugio bajo ataque, ayuda...", 80, 90, 50, 150)
-        } else if (player_level == 9) {
-            story.printDialog("El refugio está cerca, pero algo acecha en la oscuridad..", 80, 90, 50, 150)
-        } else if (player_level == 10) {
-            story.printDialog("Todo apunta a esto: el refugio guarda un oscuro secreto.", 80, 90, 50, 150)
-        }
-        
     }
     
     if (player_level == 11) {
@@ -386,9 +366,42 @@ function next_level() {
     set_player_stats(player_level)
     music.baDing.play()
     game.splash("Level Up! - " + player_level)
+    show_game_lore(player_level)
     destroy_all_zombies()
     destroy_all_bullets()
     gamer()
+}
+
+function show_game_lore(player_level: number) {
+    if (player_level == 2) {
+        scene.setBackgroundImage(assets.image`lore_level_2_1`)
+        game.showLongText("Los primeros infectados eran lentos, ahora son cada vez más rápidos y letales.", DialogLayout.Bottom)
+    } else if (player_level == 3) {
+        scene.setBackgroundImage(assets.image`lore_level_3_1`)
+        game.showLongText("Los demonios internos de Alex empiezan a aparecer", DialogLayout.Bottom)
+    } else if (player_level == 4) {
+        scene.setBackgroundImage(assets.image`lore_level_4_1`)
+        game.showLongText("Alex recuerda su hogar, pero ya no queda nada de él.", DialogLayout.Bottom)
+    } else if (player_level == 5) {
+        scene.setBackgroundImage(assets.image`lore_level_5_1`)
+        game.showLongText("Un rumor dice que un refugio seguro existe al este... ¿será cierto?", DialogLayout.Bottom)
+    } else if (player_level == 6) {
+        scene.setBackgroundImage(assets.image`lore_level_6_1`)
+        game.showLongText("La infección avanza más rápido que cualquier cura posible.", DialogLayout.Bottom)
+    } else if (player_level == 7) {
+        scene.setBackgroundImage(assets.image`lore_level_7_1`)
+        game.showLongText("Encontré un diario... alguien intentó detener esto, pero fracasó.", DialogLayout.Bottom)
+    } else if (player_level == 8) {
+        scene.setBackgroundImage(assets.image`lore_level_8_1`)
+        game.showLongText("El Micro:bit interceptó una señal: 'Refugio bajo ataque, ayuda...'", DialogLayout.Bottom)
+    } else if (player_level == 9) {
+        scene.setBackgroundImage(assets.image`lore_level_9_1`)
+        game.showLongText("El refugio está cerca, pero algo acecha en la oscuridad...", DialogLayout.Bottom)
+    } else if (player_level == 10) {
+        scene.setBackgroundImage(assets.image`lore_level_10_1`)
+        game.showLongText("Todo apunta a esto: el refugio guarda un oscuro secreto.", DialogLayout.Bottom)
+    }
+    
 }
 
 function set_player_stats(level: number) {
@@ -1352,4 +1365,3 @@ function blood_explosion_sound() {
     music.playTone(1200, BeatFraction.Eighth)
 }
 
-blood_explosion_sound()

@@ -5,7 +5,6 @@ player_sprite: Sprite = None
 zombie_sprite: Sprite = None
 bullet_sprite: Sprite = None
 ghast_sprite: Sprite = None
-
 # Sprite lists
 bullet_list:List[Bullet] = []
 zombie_list:List[Sprite] = []
@@ -350,24 +349,6 @@ def next_level():
     global player_level, player_exp
     if (info.life() > 0):
         player_level += 1
-        if player_level == 2:
-            story.print_dialog("La enfermedad comenzó en silencio... nadie vio venir el caos.", 80, 90, 50, 150)
-        elif player_level == 3:
-            story.print_dialog("Los primeros infectados eran lentos, ahora son más rápidos y letales.", 80, 90, 50, 150)
-        elif player_level == 4:
-            story.print_dialog("Alex recuerda su hogar, pero ya no queda nada de él", 80, 90, 50, 150)
-        elif player_level == 5:
-            story.print_dialog("Un rumor dice que un refugio seguro existe al este... ¿será cierto?", 80, 90, 50, 150)
-        elif player_level == 6:
-            story.print_dialog("La infección avanza más rápido que cualquier cura posible.", 80, 90, 50, 150)
-        elif player_level == 7:
-            story.print_dialog("Encontré un diario... alguien intentó detener esto, pero fracasó.", 80, 90, 50, 150)
-        elif player_level == 8:
-            story.print_dialog("El Micro:bit interceptó una señal: 'Refugio bajo ataque, ayuda...", 80, 90, 50, 150)
-        elif player_level == 9:
-            story.print_dialog("El refugio está cerca, pero algo acecha en la oscuridad..", 80, 90, 50, 150)
-        elif player_level == 10:
-            story.print_dialog("Todo apunta a esto: el refugio guarda un oscuro secreto.", 80, 90, 50, 150)
     if (player_level == 11): # Caso base 1
         game_over()
         music.power_up.play()
@@ -382,10 +363,41 @@ def next_level():
     set_player_stats(player_level)
     music.ba_ding.play()
     game.splash("Level Up! - " + player_level)
+    show_game_lore(player_level)
     destroy_all_zombies()
     destroy_all_bullets()
     gamer()
 
+
+def show_game_lore(player_level):
+    if player_level == 2:
+        scene.set_background_image(assets.image("""lore_level_2_1"""))
+        
+        game.show_long_text("Los primeros infectados eran lentos, ahora son cada vez más rápidos y letales.", DialogLayout.BOTTOM)
+    elif player_level == 3:
+        scene.set_background_image(assets.image("""lore_level_3_1"""))
+        game.show_long_text("Los demonios internos de Alex empiezan a aparecer", DialogLayout.BOTTOM)
+    elif player_level == 4:
+        scene.set_background_image(assets.image("""lore_level_4_1"""))
+        game.show_long_text("Alex recuerda su hogar, pero ya no queda nada de él.", DialogLayout.BOTTOM)
+    elif player_level == 5:
+        scene.set_background_image(assets.image("""lore_level_5_1"""))
+        game.show_long_text("Un rumor dice que un refugio seguro existe al este... ¿será cierto?", DialogLayout.BOTTOM)
+    elif player_level == 6:
+        scene.set_background_image(assets.image("""lore_level_6_1"""))
+        game.show_long_text("La infección avanza más rápido que cualquier cura posible.", DialogLayout.BOTTOM)
+    elif player_level == 7:
+        scene.set_background_image(assets.image("""lore_level_7_1"""))
+        game.show_long_text("Encontré un diario... alguien intentó detener esto, pero fracasó.", DialogLayout.BOTTOM)
+    elif player_level == 8:
+        scene.set_background_image(assets.image("""lore_level_8_1"""))
+        game.show_long_text("El Micro:bit interceptó una señal: 'Refugio bajo ataque, ayuda...'", DialogLayout.BOTTOM)
+    elif player_level == 9:
+        scene.set_background_image(assets.image("""lore_level_9_1"""))
+        game.show_long_text("El refugio está cerca, pero algo acecha en la oscuridad...", DialogLayout.BOTTOM)
+    elif player_level == 10:
+        scene.set_background_image(assets.image("""lore_level_10_1"""))
+        game.show_long_text("Todo apunta a esto: el refugio guarda un oscuro secreto.", DialogLayout.BOTTOM)
 def set_player_stats(level: int):
     global player_hp, player_power, player_speed, player_exp_required, stat_lifes_won, player_exp_punish, explosion_power, blood_explosion_power, explosion_particle_amt, blood_explosion_particle_amt
     if info.life() < 3:
@@ -1344,5 +1356,3 @@ def blood_explosion_sound():
     music.play_tone(800, BeatFraction.EIGHTH)
     music.play_tone(1000, BeatFraction.EIGHTH)
     music.play_tone(1200, BeatFraction.EIGHTH)
-
-blood_explosion_sound()
