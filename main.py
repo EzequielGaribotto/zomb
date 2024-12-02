@@ -539,7 +539,7 @@ def create_enemy():
     global player_level, ghast_exists, delay_min_ghast, delay_max_ghast
     global ghast_timer
     create_zombie()
-    if (player_level >= 1 and not ghast_exists):
+    if (player_level >= 3 and not ghast_exists):
         current_time = game.runtime()
         if (current_time - ghast_timer > randint(delay_min_ghast, delay_max_ghast)):
             create_ghast()
