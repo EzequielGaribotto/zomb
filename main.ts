@@ -6,9 +6,9 @@ let bullet_sprite : Sprite = null
 let ghast_sprite : Sprite = null
 //  Sprite lists
 let bullet_list : Bullet[] = []
-let zombie_list : Zombie[] = []
-let ghast_list : Ghast[] = []
-let deleted_zombies_list : Zombie[] = []
+let zombie_list : Sprite[] = []
+let ghast_list : Sprite[] = []
+let deleted_zombies_list : Sprite[] = []
 //  Status bar Sprites
 let exp_status_bar : StatusBarSprite = null
 let statusbar : StatusBarSprite = null
@@ -60,11 +60,16 @@ let stat_precission = 0
 let stat_accurate_shots = 0
 let stat_zombies_escaped = 0
 let stat_zombies_killed = 0
+let stat_ghasts_killed = 0
 let stat_damage_dealt = 0
 let stat_lifes_won = 0
 let stat_lifes_lost = 0
 //  Ghast stats
 let ghast_speed = 0
+let ghast_xp_reward = 0
+let ghast_hp = 0
+let ypos_ghast_sprite = 0
+let ghast_exists = false
 //  Classes
 namespace SpriteKind {
     export const projectile = SpriteKind.create()
@@ -77,26 +82,6 @@ class Bullet {
     sprite: Sprite
     constructor(sprite: Sprite, bullet_id: Number) {
         this.bullet_id = bullet_id
-        this.sprite = sprite
-    }
-    
-}
-
-class Zombie {
-    zombie_id: Number
-    sprite: Sprite
-    constructor(sprite: Sprite, zombie_id: Number) {
-        this.zombie_id = zombie_id
-        this.sprite = sprite
-    }
-    
-}
-
-class Ghast {
-    ghast_id: Number
-    sprite: Sprite
-    constructor(sprite: Sprite, ghast_id: Number) {
-        this.ghast_id = ghast_id
         this.sprite = sprite
     }
     
@@ -283,7 +268,6 @@ function create_skip_lore_sprite() {
     skip_lore_sprite.setPosition(80, 110)
 }
 
-create_ghast()
 //  Pantalla de juego
 function open_zombie_screen() {
     initialize_game_data()
@@ -331,7 +315,7 @@ function gamer() {
         destroy_zombies()
         destroy_bullets()
         if (player_exp < player_exp_required && info.life() > 0) {
-            create_zombie()
+            create_enemy()
         } else {
             next_level()
         }
@@ -416,6 +400,19 @@ function set_zombie_stats(level: number) {
     zombie_stun_speed = stats["stun_speed"]
 }
 
+function set_ghast_stats(level: number) {
+    
+    let stats = {
+        "speed" : 25 + (level - 1) * 3,
+        "xp_reward" : 50,
+        "hp" : 30 + (level - 1) * 25,
+    }
+    
+    ghast_speed = stats["speed"]
+    ghast_xp_reward = stats["xp_reward"]
+    ghast_hp = stats["hp"]
+}
+
 function destroy_bullets() {
     
     
@@ -430,8 +427,8 @@ function destroy_bullets() {
 function destroy_zombies() {
     
     for (let z of zombie_list) {
-        if (z.sprite.x < LEFT_BOUNDARY && deleted_zombies_list.indexOf(z) < 0) {
-            sprites.destroy(z.sprite, effects.disintegrate)
+        if (z.x < LEFT_BOUNDARY && deleted_zombies_list.indexOf(z) < 0) {
+            sprites.destroy(z, effects.disintegrate)
             if (player_exp > 0) {
                 player_exp -= player_exp_punish
                 if (player_exp < 0) {
@@ -452,7 +449,7 @@ function destroy_all_zombies() {
     
     
     for (let z of zombie_list) {
-        sprites.destroy(z.sprite)
+        sprites.destroy(z)
     }
 }
 
@@ -535,17 +532,38 @@ sprites.onOverlap(SpriteKind.player, SpriteKind.enemy, function on_player_collis
     zombie.destroy()
     scene.cameraShake(4, 500)
 })
-statusbars.onZero(StatusBarKind.EnemyHealth, function on_zombie_life_zero(status: StatusBarSprite) {
+statusbars.onZero(StatusBarKind.EnemyHealth, function on_enemy_life_zero(bar: StatusBarSprite) {
     
     music.thump.play()
-    status.spriteAttachedTo().destroy(effects.disintegrate)
-    stat_zombies_killed += 1
-    player_exp += zombie_xp_reward
+    let sprite = bar.spriteAttachedTo()
+    if (zombie_list.indexOf(sprite) >= 0 && !ghast_exists) {
+        stat_zombies_killed += 1
+        player_exp += zombie_xp_reward
+    } else if (ghast_exists) {
+        if (ghast_list.indexOf(sprite) >= 0) {
+            stat_ghasts_killed += 1
+            player_exp += ghast_xp_reward
+            ghast_exists = false
+        }
+        
+    }
+    
+    bar.spriteAttachedTo().destroy(effects.disintegrate)
     update_exp_status_bar()
 })
 info.onLifeZero(function on_life_zero() {
     game_over()
 })
+function create_enemy() {
+    
+    create_zombie()
+    if (player_level == 1 && !ghast_exists) {
+        pause(250)
+        create_ghast()
+    }
+    
+}
+
 function create_player() {
     
     player_sprite = sprites.create(img`
@@ -578,7 +596,7 @@ function create_zombie() {
     zombie_sprite.setPosition(player_sprite.x + RIGHT_BOUNDARY, ypos_zombie_sprite)
     animation.runImageAnimation(zombie_sprite, assets.animation`zombie_anim`, 100, true)
     zombie_sprite.setVelocity(-zombie_speed, 0)
-    zombie_list.push(new Zombie(zombie_sprite, zombie_list.length + 1))
+    zombie_list.push(zombie_sprite)
     statusbar = statusbars.create(16, 2, StatusBarKind.EnemyHealth)
     statusbar.setLabel("HP")
     statusbar.max = zombie_hp
@@ -588,17 +606,13 @@ function create_zombie() {
 
 function create_ghast() {
     
-    let ghast_hp = 10
-    //  Health points for the Ghast
-    ghast_speed = 30
-    //  Speed of the Ghast
-    //  Create the Ghast sprite
+    ghast_exists = true
+    ypos_ghast_sprite = randint(20, 110)
     ghast_sprite = sprites.create(assets.image`ghast_i`, SpriteKind.enemy)
-    ghast_sprite.setPosition(randint(20, 160), randint(20, 120))
-    //  Spawn randomly near player
-    //  Run an animation for the Ghast
+    ghast_sprite.setPosition(player_sprite.x + RIGHT_BOUNDARY, ypos_ghast_sprite)
     animation.runImageAnimation(ghast_sprite, assets.animation`ghast`, 150, true)
     //  Create and attach a status bar for the Ghast
+    ghast_list.push(ghast_sprite)
     let ghast_statusbar = statusbars.create(16, 2, StatusBarKind.EnemyHealth)
     ghast_statusbar.setLabel("HP")
     ghast_statusbar.max = ghast_hp

@@ -8,9 +8,9 @@ ghast_sprite: Sprite = None
 
 # Sprite lists
 bullet_list:List[Bullet] = []
-zombie_list:List[Zombie] = []
-ghast_list:List[Ghast] = []
-deleted_zombies_list:List[Zombie] = []
+zombie_list:List[Sprite] = []
+ghast_list:List[Sprite] = []
+deleted_zombies_list:List[Sprite] = []
 
 # Status bar Sprites
 exp_status_bar:StatusBarSprite = None
@@ -71,13 +71,17 @@ stat_accurate_shots = 0
 
 stat_zombies_escaped = 0
 stat_zombies_killed = 0
+stat_ghasts_killed = 0
 stat_damage_dealt = 0
 stat_lifes_won = 0
 stat_lifes_lost = 0
 
 # Ghast stats
 ghast_speed = 0
-
+ghast_xp_reward = 0
+ghast_hp = 0
+ypos_ghast_sprite = 0
+ghast_exists = False
 # Classes
 @namespace
 class SpriteKind:
@@ -90,15 +94,6 @@ class Bullet:
         self.bullet_id = bullet_id
         self.sprite: Sprite = sprite
 
-class Zombie:
-    def __init__(self, sprite: Sprite, zombie_id: Number):
-        self.zombie_id = zombie_id
-        self.sprite: Sprite = sprite
-
-class Ghast:
-    def __init__(self, sprite: Sprite, ghast_id: Number):
-        self.ghast_id = ghast_id
-        self.sprite: Sprite = sprite
 # main
 open_main_screen()
 
@@ -282,7 +277,7 @@ def zombie_cutscene():
     sprites.destroy(skip_lore_sprite)
     open_zombie_screen()
     story.start_cutscene(stats_cutscene)
-create_ghast()
+
 # Pantalla de juego
 def open_zombie_screen():
     initialize_game_data()
@@ -323,7 +318,7 @@ def gamer():
         destroy_zombies()
         destroy_bullets()
         if player_exp < player_exp_required and info.life() > 0:
-            create_zombie()
+            create_enemy()
         else:
             next_level()
 
@@ -394,6 +389,18 @@ def set_zombie_stats(level: int):
     zombie_stun_duration = stats["stun_duration"]
     zombie_stun_speed = stats["stun_speed"]
 
+def set_ghast_stats(level: int):
+    global ghast_speed, ghast_xp_reward, ghast_hp
+
+    stats = {
+        "speed": 25 + (level - 1) * 3,
+        "xp_reward": 50,
+        "hp": 30 + (level -1) * 25
+    }
+
+    ghast_speed = stats["speed"]
+    ghast_xp_reward = stats["xp_reward"]
+    ghast_hp = stats["hp"]
 
 def destroy_bullets():
     global bullet_list
@@ -405,8 +412,8 @@ def destroy_bullets():
 def destroy_zombies():
     global zombie_list, player_sprite, player_exp, deleted_zombies_list, player_exp_punish, stat_zombies_escaped
     for z in zombie_list:
-        if z.sprite.x < LEFT_BOUNDARY and z not in deleted_zombies_list:
-            sprites.destroy(z.sprite, effects.disintegrate)
+        if z.x < LEFT_BOUNDARY and z not in deleted_zombies_list:
+            sprites.destroy(z, effects.disintegrate)
             if (player_exp > 0):
                 player_exp -= player_exp_punish
                 if (player_exp < 0):
@@ -420,7 +427,7 @@ def destroy_all_zombies():
     global zombie_list
     global player_sprite
     for z in zombie_list:
-        sprites.destroy(z.sprite)
+        sprites.destroy(z)
 
 def destroy_all_bullets():
     global bullet_list
@@ -494,19 +501,35 @@ def on_player_collision_with_enemy(player, zombie):
     scene.camera_shake(4, 500)
 sprites.on_overlap(SpriteKind.player,SpriteKind.enemy,on_player_collision_with_enemy)
 
-def on_zombie_life_zero(status):
-    global player_exp, zombie_xp_reward, stat_zombies_killed
+def on_enemy_life_zero(bar):
+    global player_exp, zombie_xp_reward, stat_zombies_killed, ghast_xp_reward, stat_ghasts_killed, ghast_exists
     music.thump.play()
-    status.sprite_attached_to().destroy(effects.disintegrate)
-    stat_zombies_killed+=1
-    player_exp += zombie_xp_reward
+    sprite = bar.sprite_attached_to()
+    if sprite in zombie_list and not ghast_exists:
+        stat_zombies_killed+=1
+        player_exp += zombie_xp_reward
+    elif ghast_exists:
+        if sprite in ghast_list:
+            stat_ghasts_killed+=1
+            player_exp += ghast_xp_reward
+            ghast_exists = False
+
+    bar.sprite_attached_to().destroy(effects.disintegrate)
     update_exp_status_bar()
-statusbars.on_zero(StatusBarKind.enemy_health, on_zombie_life_zero)
+statusbars.on_zero(StatusBarKind.enemy_health, on_enemy_life_zero)
+
+
 
 def on_life_zero():
     game_over()
 info.on_life_zero(on_life_zero)
 
+def create_enemy():
+    global player_level, ghast_exists
+    create_zombie()
+    if (player_level == 1 and not ghast_exists):
+        pause(250)
+        create_ghast()
 
 def create_player():
     global player_sprite, direction
@@ -536,15 +559,15 @@ def create_player():
 def create_zombie():
     global zombie_hp, zombie_sprite, ypos_zombie_sprite, statusbar
     ypos_zombie_sprite = randint(20, 110)
-    zombie_sprite = sprites.create(assets.image("""zombie_enemy"""),
-        SpriteKind.enemy)
+    zombie_sprite = sprites.create(assets.image("""zombie_enemy"""), SpriteKind.enemy)
     zombie_sprite.set_position(player_sprite.x + RIGHT_BOUNDARY, ypos_zombie_sprite)
+
     animation.run_image_animation(zombie_sprite,
         assets.animation("""zombie_anim"""),
         100,
         True)
     zombie_sprite.set_velocity(-zombie_speed, 0)
-    zombie_list.push(Zombie(zombie_sprite, zombie_list.length +1))
+    zombie_list.push(zombie_sprite)
     statusbar = statusbars.create(16, 2, StatusBarKind.enemy_health)
     statusbar.set_label("HP")
     statusbar.max = zombie_hp
@@ -552,21 +575,19 @@ def create_zombie():
     statusbar.attachToSprite(zombie_sprite)
 
 def create_ghast():
-    global ghast_sprite, ghast_status_bar, ghast_speed
-    ghast_hp = 10  # Health points for the Ghast
-    ghast_speed = 30  # Speed of the Ghast
-    
-    # Create the Ghast sprite
+    global ghast_sprite, ghast_status_bar, ghast_speed, ypos_ghast_sprite, ghast_hp, ghast_exists
+    ghast_exists = True
+    ypos_ghast_sprite = randint(20, 110)
     ghast_sprite = sprites.create(assets.image("""ghast_i"""), SpriteKind.enemy)
-    ghast_sprite.set_position(randint(20, 160), randint(20, 120))  # Spawn randomly near player
+    ghast_sprite.set_position(player_sprite.x + RIGHT_BOUNDARY, ypos_ghast_sprite)
     
-    # Run an animation for the Ghast
     animation.run_image_animation(ghast_sprite,
         assets.animation("""ghast"""),
         150,
         True)
     
     # Create and attach a status bar for the Ghast
+    ghast_list.push(ghast_sprite)
     ghast_statusbar = statusbars.create(16, 2, StatusBarKind.enemy_health)
     ghast_statusbar.set_label("HP")
     ghast_statusbar.max = ghast_hp
