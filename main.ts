@@ -1165,7 +1165,7 @@ function play_foot_step() {
     
     if (controller.left.isPressed() || controller.right.isPressed() || controller.down.isPressed() || controller.up.isPressed()) {
         current_time = game.runtime()
-        if (current_time - footstep_timer > 150) {
+        if (current_time - footstep_timer > 200) {
             play_custom_footstep()
             footstep_timer = current_time
         }
@@ -1197,7 +1197,7 @@ function play_custom_footstep() {
     let startFreq = randint(220, 240)
     //  Slight variation for realism
     let endFreq = randint(180, 200)
-    let duration = 100
+    let duration = 50
     //  Quick and subtle
     music.playSoundEffect(music.createSoundEffect(WaveShape.Triangle, startFreq, endFreq, 50, 0, duration, SoundExpressionEffect.None, InterpolationCurve.Curve), SoundExpressionPlayMode.InBackground)
 }

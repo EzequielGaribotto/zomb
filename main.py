@@ -1174,7 +1174,7 @@ def play_foot_step():
     global footstep_timer
     if controller.left.is_pressed() or controller.right.is_pressed() or controller.down.is_pressed() or controller.up.is_pressed():
         current_time = game.runtime()
-        if current_time - footstep_timer > 150:
+        if current_time - footstep_timer > 200:
             play_custom_footstep()
             footstep_timer = current_time
 
@@ -1208,7 +1208,7 @@ def play_custom_hit_sound():
 def play_custom_footstep():
     startFreq = randint(220, 240)  # Slight variation for realism
     endFreq = randint(180, 200)
-    duration = 100  # Quick and subtle
+    duration = 50  # Quick and subtle
     music.play_sound_effect(music.create_sound_effect(
         waveShape=WaveShape.TRIANGLE,  # Triangle wave for a soft, smooth tone
         startFrequency=startFreq,
