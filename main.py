@@ -43,6 +43,13 @@ zombie_xp_reward = 0
 # Explosion stats
 explosion_power = 0
 stat_explosion_damage = 0
+explosion_particle_amt = 0
+
+blood_explosion_power = 0
+stat_blood_explosion_damage = 0
+blood_explosion_particle_amt = 0
+
+accumulated_explosion_damage = 0
 
 # Player Stats
 direction = ""
@@ -102,6 +109,7 @@ class SpriteKind:
     enemy = SpriteKind.create()
     player = SpriteKind.create()
     explosion = SpriteKind.create()
+    blood_explosion = SpriteKind.create()
 
 class Bullet:
     def __init__(self, sprite: Sprite, bullet_id: Number):
@@ -379,7 +387,7 @@ def next_level():
     gamer()
 
 def set_player_stats(level: int):
-    global player_hp, player_power, player_speed, player_exp_required, stat_lifes_won, player_exp_punish, explosion_power
+    global player_hp, player_power, player_speed, player_exp_required, stat_lifes_won, player_exp_punish, explosion_power, blood_explosion_power, explosion_particle_amt, blood_explosion_particle_amt
     if info.life() < 3:
         info.change_life_by(+1)
         stat_lifes_won += 1
@@ -390,7 +398,10 @@ def set_player_stats(level: int):
         "speed": 200 + (level - 1) * 10,
         "exp_required": 100 * level,
         "exp_punish": level,
-        "explosion_power": 5 + (level -1)
+        "explosion_power": 5 + (level -1),
+        "blood_explosion_power": 1 + (level -1),
+        "explosion_particle_amt": 20 + (level -3) * 3,
+        "blood_explosion_particle_amt": 25 + (level -1) * 5
     }
 
     player_hp = stats["hp"]
@@ -399,6 +410,9 @@ def set_player_stats(level: int):
     player_exp_required = stats["exp_required"]
     player_exp_punish = stats["exp_punish"]
     explosion_power = stats["explosion_power"]
+    blood_explosion_power = stats["blood_explosion_power"]
+    explosion_particle_amt = stats["explosion_particle_amt"]
+    blood_explosion_particle_amt = stats["blood_explosion_particle_amt"]
 
 
 def set_zombie_stats(level: int):
@@ -525,10 +539,11 @@ def on_projectile_collision(bullet, zombie):
     stat_damage_dealt+=player_power
     animate_bullet_collision(bullet)
     play_custom_hit_sound()
-    statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, zombie).value += -player_power
-    zombie.set_velocity(-zombie_stun_speed, 0)
+    statusbar = statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, zombie)
+    if (statusbar): statusbar.value += -player_power
+    if (zombie): zombie.set_velocity(-zombie_stun_speed, 0)
     pause(zombie_stun_duration)
-    zombie.set_velocity(-zombie_speed, 0)
+    if (zombie): zombie.set_velocity(-zombie_speed, 0)
 sprites.on_overlap(SpriteKind.projectile,SpriteKind.enemy,on_projectile_collision)
 
 def on_player_collision_with_enemy(player, zombie):
@@ -543,9 +558,18 @@ sprites.on_overlap(SpriteKind.player,SpriteKind.enemy,on_player_collision_with_e
 # Eventos
 def on_explosion_collision(explosion, zombie):
     global explosion_power, stat_explosion_damage
-    stat_explosion_damage+=player_power
+    stat_explosion_damage+=explosion_power
+    sprites.destroy(explosion)
     statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, zombie).value += -explosion_power
 sprites.on_overlap(SpriteKind.explosion,SpriteKind.enemy,on_explosion_collision)
+
+def on_blood_explosion_collision(explosion, zombie):
+    global blood_explosion_power, stat_blood_explosion_damage
+    stat_blood_explosion_damage+=blood_explosion_power
+    sprites.destroy(explosion)
+    statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, zombie).value += -blood_explosion_power
+
+sprites.on_overlap(SpriteKind.blood_explosion,SpriteKind.enemy,on_blood_explosion_collision)
 
 def on_enemy_life_zero(bar):
     global player_exp, zombie_xp_reward, stat_zombies_killed, ghast_xp_reward, stat_ghasts_killed, ghast_exists
@@ -554,6 +578,7 @@ def on_enemy_life_zero(bar):
     if sprite in zombie_list and not ghast_exists:
         stat_zombies_killed+=1
         player_exp += zombie_xp_reward
+        blood_explosion(sprite.x,sprite.y)
     elif ghast_exists:
         if sprite in ghast_list:
             stat_ghasts_killed+=1
@@ -1207,7 +1232,9 @@ def skip_lore():
 
 # Función para crear la explosión
 def explosion(x: int, y: int):
-    for i in range(20):
+    global explosion_particle_amt
+    blood_explosion_sound()
+    for i in range(explosion_particle_amt):
         blood = sprites.create(img("""
             . . .
             . 2 4
@@ -1220,85 +1247,32 @@ def explosion(x: int, y: int):
         blood.set_flag(SpriteFlag.AUTO_DESTROY, True)
         blood.lifespan = Math.random_range(800, 1000)
 
+# Función para crear la explosión circular
+def blood_explosion(x: int, y: int):
+    global blood_explosion_particle_amt
+    for i in range(blood_explosion_particle_amt):
+        blood = sprites.create(img("""
+            . . .
+            . 7 4
+            . . .
+        """), SpriteKind.projectile)
+        blood.x = x
+        blood.y = y
+
+        angle = Math.random_range(0, 360)
+        
+        radians = angle * Math.PI / 180
+        
+        blood.vx = Math.cos(radians) * Math.random_range(15, 20)
+        blood.vy = Math.sin(radians) * Math.random_range(15, 20)
+
+        blood.set_flag(SpriteFlag.AUTO_DESTROY, True)
+        blood.lifespan = Math.random_range(500, 1000)
+
+controller.A.on_event(ControllerButtonEvent.PRESSED, on_a_pressed)
 
 # Bullet animation
 def animate_bullet_collision(bullet):
-    animation.run_image_animation(bullet,
-        [img("""
-                . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . 4 4 . . . . . . .
-                                        . . . . . . 4 5 5 4 . . . . . .
-                                        . . . . . . 2 5 5 2 . . . . . .
-                                        . . . . . . . 2 2 . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-            """),
-            img("""
-                . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . 4 . . . . .
-                                        . . . . 2 . . . . 4 4 . . . . .
-                                        . . . . 2 4 . . 4 5 4 . . . . .
-                                        . . . . . 2 4 d 5 5 4 . . . . .
-                                        . . . . . 2 5 5 5 5 4 . . . . .
-                                        . . . . . . 2 5 5 5 5 4 . . . .
-                                        . . . . . . 2 5 4 2 4 4 . . . .
-                                        . . . . . . 4 4 . . 2 4 4 . . .
-                                        . . . . . 4 4 . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-            """),
-            img("""
-                . 3 . . . . . . . . . . . 4 . .
-                                        . 3 3 . . . . . . . . . 4 4 . .
-                                        . 3 d 3 . . 4 4 . . 4 4 d 4 . .
-                                        . . 3 5 3 4 5 5 4 4 d d 4 4 . .
-                                        . . 3 d 5 d 1 1 d 5 5 d 4 4 . .
-                                        . . 4 5 5 1 1 1 1 5 1 1 5 4 . .
-                                        . 4 5 5 5 5 1 1 5 1 1 1 d 4 4 .
-                                        . 4 d 5 1 1 5 5 5 1 1 1 5 5 4 .
-                                        . 4 4 5 1 1 5 5 5 5 5 d 5 5 4 .
-                                        . . 4 3 d 5 5 5 d 5 5 d d d 4 .
-                                        . 4 5 5 d 5 5 5 d d d 5 5 4 . .
-                                        . 4 5 5 d 3 5 d d 3 d 5 5 4 . .
-                                        . 4 4 d d 4 d d d 4 3 d d 4 . .
-                                        . . 4 5 4 4 4 4 4 4 4 4 4 . . .
-                                        . 4 5 4 . . 4 4 4 . . . 4 4 . .
-                                        . 4 4 . . . . . . . . . . 4 4 .
-            """),
-            img("""
-                . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . b b . b b b . . . . .
-                                        . . . . b 1 1 b 1 1 1 b . . . .
-                                        . . b b 3 1 1 d d 1 d d b b . .
-                                        . b 1 1 d d b b b b b 1 1 b . .
-                                        . b 1 1 1 b . . . . . b d d b .
-                                        . . 3 d d b . . . . . b d 1 1 b
-                                        . b 1 d 3 . . . . . . . b 1 1 b
-                                        . b 1 1 b . . . . . . b b 1 d b
-                                        . b 1 d b . . . . . . b d 3 d b
-                                        . b b d d b . . . . b d d d b .
-                                        . b d d d d b . b b 3 d d 3 b .
-                                        . . b d d 3 3 b d 3 3 b b b . .
-                                        . . . b b b d d d d d b . . . .
-                                        . . . . . . b b b b b . . . . .
-            """)],
-        0,
-        False)
-    pause(0)
     sprites.destroy(bullet)
 
 def on_on_update():
@@ -1363,3 +1337,12 @@ def play_custom_footstep():
         effect=SoundExpressionEffect.NONE,  # No additional effects
         interpolation=InterpolationCurve.CURVE,  # Slightly curved transition
     ), mode=SoundExpressionPlayMode.IN_BACKGROUND)
+
+def blood_explosion_sound():
+    music.play_tone(200, BeatFraction.HALF)
+    music.play_tone(150, BeatFraction.QUARTER)
+    music.play_tone(800, BeatFraction.EIGHTH)
+    music.play_tone(1000, BeatFraction.EIGHTH)
+    music.play_tone(1200, BeatFraction.EIGHTH)
+
+blood_explosion_sound()

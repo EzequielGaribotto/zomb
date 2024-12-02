@@ -37,6 +37,11 @@ let zombie_xp_reward = 0
 //  Explosion stats
 let explosion_power = 0
 let stat_explosion_damage = 0
+let explosion_particle_amt = 0
+let blood_explosion_power = 0
+let stat_blood_explosion_damage = 0
+let blood_explosion_particle_amt = 0
+let accumulated_explosion_damage = 0
 //  Player Stats
 let direction = ""
 let player_level = 0
@@ -84,6 +89,7 @@ namespace SpriteKind {
     export const enemy = SpriteKind.create()
     export const player = SpriteKind.create()
     export const explosion = SpriteKind.create()
+    export const blood_explosion = SpriteKind.create()
 }
 
 class Bullet {
@@ -399,6 +405,9 @@ function set_player_stats(level: number) {
         "exp_required" : 100 * level,
         "exp_punish" : level,
         "explosion_power" : 5 + (level - 1),
+        "blood_explosion_power" : 1 + (level - 1),
+        "explosion_particle_amt" : 20 + (level - 3) * 3,
+        "blood_explosion_particle_amt" : 25 + (level - 1) * 5,
     }
     
     player_hp = stats["hp"]
@@ -407,6 +416,9 @@ function set_player_stats(level: number) {
     player_exp_required = stats["exp_required"]
     player_exp_punish = stats["exp_punish"]
     explosion_power = stats["explosion_power"]
+    blood_explosion_power = stats["blood_explosion_power"]
+    explosion_particle_amt = stats["explosion_particle_amt"]
+    blood_explosion_particle_amt = stats["blood_explosion_particle_amt"]
 }
 
 function set_zombie_stats(level: number) {
@@ -556,10 +568,20 @@ sprites.onOverlap(SpriteKind.projectile, SpriteKind.enemy, function on_projectil
     stat_damage_dealt += player_power
     animate_bullet_collision(bullet)
     play_custom_hit_sound()
-    statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, zombie).value += -player_power
-    zombie.setVelocity(-zombie_stun_speed, 0)
+    let statusbar = statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, zombie)
+    if (statusbar) {
+        statusbar.value += -player_power
+    }
+    
+    if (zombie) {
+        zombie.setVelocity(-zombie_stun_speed, 0)
+    }
+    
     pause(zombie_stun_duration)
-    zombie.setVelocity(-zombie_speed, 0)
+    if (zombie) {
+        zombie.setVelocity(-zombie_speed, 0)
+    }
+    
 })
 sprites.onOverlap(SpriteKind.player, SpriteKind.enemy, function on_player_collision_with_enemy(player: Sprite, zombie: Sprite) {
     
@@ -572,8 +594,15 @@ sprites.onOverlap(SpriteKind.player, SpriteKind.enemy, function on_player_collis
 //  Eventos
 sprites.onOverlap(SpriteKind.explosion, SpriteKind.enemy, function on_explosion_collision(explosion: Sprite, zombie: Sprite) {
     
-    stat_explosion_damage += player_power
+    stat_explosion_damage += explosion_power
+    sprites.destroy(explosion)
     statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, zombie).value += -explosion_power
+})
+sprites.onOverlap(SpriteKind.blood_explosion, SpriteKind.enemy, function on_blood_explosion_collision(explosion: Sprite, zombie: Sprite) {
+    
+    stat_blood_explosion_damage += blood_explosion_power
+    sprites.destroy(explosion)
+    statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, zombie).value += -blood_explosion_power
 })
 statusbars.onZero(StatusBarKind.EnemyHealth, function on_enemy_life_zero(bar: StatusBarSprite) {
     
@@ -582,6 +611,7 @@ statusbars.onZero(StatusBarKind.EnemyHealth, function on_enemy_life_zero(bar: St
     if (zombie_list.indexOf(sprite) >= 0 && !ghast_exists) {
         stat_zombies_killed += 1
         player_exp += zombie_xp_reward
+        blood_explosion(sprite.x, sprite.y)
     } else if (ghast_exists) {
         if (ghast_list.indexOf(sprite) >= 0) {
             stat_ghasts_killed += 1
@@ -1162,7 +1192,7 @@ function create_bullet(): Sprite {
 }
 
 //  Button A
-controller.A.onEvent(ControllerButtonEvent.Pressed, function on_a_pressed() {
+function on_a_pressed() {
     
     if (on_menu == true) {
         on_menu = false
@@ -1187,7 +1217,9 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function on_a_pressed() {
         story.clearAllText()
     }
     
-})
+}
+
+controller.A.onEvent(ControllerButtonEvent.Pressed, on_a_pressed)
 //  Related functions to button A
 function close_menu() {
     sprites.destroy(title_sprite)
@@ -1204,7 +1236,9 @@ function skip_lore() {
 //  Función para crear la explosión
 function explosion(x: number, y: number) {
     let blood: Sprite;
-    for (let i = 0; i < 20; i++) {
+    
+    blood_explosion_sound()
+    for (let i = 0; i < explosion_particle_amt; i++) {
         blood = sprites.create(img`
             . . .
             . 2 4
@@ -1219,78 +1253,32 @@ function explosion(x: number, y: number) {
     }
 }
 
+//  Función para crear la explosión circular
+function blood_explosion(x: number, y: number) {
+    let blood: Sprite;
+    let angle: number;
+    let radians: number;
+    
+    for (let i = 0; i < blood_explosion_particle_amt; i++) {
+        blood = sprites.create(img`
+            . . .
+            . 7 4
+            . . .
+        `, SpriteKind.projectile)
+        blood.x = x
+        blood.y = y
+        angle = Math.randomRange(0, 360)
+        radians = angle * Math.PI / 180
+        blood.vx = Math.cos(radians) * Math.randomRange(15, 20)
+        blood.vy = Math.sin(radians) * Math.randomRange(15, 20)
+        blood.setFlag(SpriteFlag.AutoDestroy, true)
+        blood.lifespan = Math.randomRange(500, 1000)
+    }
+}
+
+controller.A.onEvent(ControllerButtonEvent.Pressed, on_a_pressed)
 //  Bullet animation
 function animate_bullet_collision(bullet: any) {
-    animation.runImageAnimation(bullet, [img`
-                . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . 4 4 . . . . . . .
-                                        . . . . . . 4 5 5 4 . . . . . .
-                                        . . . . . . 2 5 5 2 . . . . . .
-                                        . . . . . . . 2 2 . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-            `, img`
-                . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . 4 . . . . .
-                                        . . . . 2 . . . . 4 4 . . . . .
-                                        . . . . 2 4 . . 4 5 4 . . . . .
-                                        . . . . . 2 4 d 5 5 4 . . . . .
-                                        . . . . . 2 5 5 5 5 4 . . . . .
-                                        . . . . . . 2 5 5 5 5 4 . . . .
-                                        . . . . . . 2 5 4 2 4 4 . . . .
-                                        . . . . . . 4 4 . . 2 4 4 . . .
-                                        . . . . . 4 4 . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-            `, img`
-                . 3 . . . . . . . . . . . 4 . .
-                                        . 3 3 . . . . . . . . . 4 4 . .
-                                        . 3 d 3 . . 4 4 . . 4 4 d 4 . .
-                                        . . 3 5 3 4 5 5 4 4 d d 4 4 . .
-                                        . . 3 d 5 d 1 1 d 5 5 d 4 4 . .
-                                        . . 4 5 5 1 1 1 1 5 1 1 5 4 . .
-                                        . 4 5 5 5 5 1 1 5 1 1 1 d 4 4 .
-                                        . 4 d 5 1 1 5 5 5 1 1 1 5 5 4 .
-                                        . 4 4 5 1 1 5 5 5 5 5 d 5 5 4 .
-                                        . . 4 3 d 5 5 5 d 5 5 d d d 4 .
-                                        . 4 5 5 d 5 5 5 d d d 5 5 4 . .
-                                        . 4 5 5 d 3 5 d d 3 d 5 5 4 . .
-                                        . 4 4 d d 4 d d d 4 3 d d 4 . .
-                                        . . 4 5 4 4 4 4 4 4 4 4 4 . . .
-                                        . 4 5 4 . . 4 4 4 . . . 4 4 . .
-                                        . 4 4 . . . . . . . . . . 4 4 .
-            `, img`
-                . . . . . . . . . . . . . . . .
-                                        . . . . . . . . . . . . . . . .
-                                        . . . . . b b . b b b . . . . .
-                                        . . . . b 1 1 b 1 1 1 b . . . .
-                                        . . b b 3 1 1 d d 1 d d b b . .
-                                        . b 1 1 d d b b b b b 1 1 b . .
-                                        . b 1 1 1 b . . . . . b d d b .
-                                        . . 3 d d b . . . . . b d 1 1 b
-                                        . b 1 d 3 . . . . . . . b 1 1 b
-                                        . b 1 1 b . . . . . . b b 1 d b
-                                        . b 1 d b . . . . . . b d 3 d b
-                                        . b b d d b . . . . b d d d b .
-                                        . b d d d d b . b b 3 d d 3 b .
-                                        . . b d d 3 3 b d 3 3 b b b . .
-                                        . . . b b b d d d d d b . . . .
-                                        . . . . . . b b b b b . . . . .
-            `], 0, false)
-    pause(0)
     sprites.destroy(bullet)
 }
 
@@ -1351,3 +1339,17 @@ function play_custom_footstep() {
     music.playSoundEffect(music.createSoundEffect(WaveShape.Triangle, startFreq, endFreq, 50, 0, duration, SoundExpressionEffect.None, InterpolationCurve.Curve), SoundExpressionPlayMode.InBackground)
 }
 
+//  Triangle wave for a soft, smooth tone
+//  Moderate volume for subtlety
+//  Fade out for realism
+//  No additional effects
+//  Slightly curved transition
+function blood_explosion_sound() {
+    music.playTone(200, BeatFraction.Half)
+    music.playTone(150, BeatFraction.Quarter)
+    music.playTone(800, BeatFraction.Eighth)
+    music.playTone(1000, BeatFraction.Eighth)
+    music.playTone(1200, BeatFraction.Eighth)
+}
+
+blood_explosion_sound()
