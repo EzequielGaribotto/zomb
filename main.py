@@ -350,6 +350,7 @@ def initialize_game_data():
     story.sprite_say_text(player_sprite, "ostras pedrin")
     sprites.destroy(skip_lore_sprite)
     create_exp_status_bar()
+    update_exp_status_bar()
     set_game_stats(player_level)
     game.on_update(on_on_update)
     info.set_life(3)
@@ -357,7 +358,7 @@ def initialize_game_data():
 # Funcion recursiva para crear zombies en funcion del nivel
 def gamer():
     global player_exp, player_exp_required
-    while player_exp < player_exp_required and info.life() > 0:
+    while True:
         pause(1)
         destroy_zombies()
         destroy_bullets()
@@ -374,10 +375,11 @@ def gamer():
 
 def create_exp_status_bar():
     global exp_status_bar
-    exp_status_bar = statusbars.create(90, 8, StatusBarKind.xp_sb)
+    exp_status_bar = statusbars.create(80, 8, StatusBarKind.xp_sb)
     exp_status_bar.set_bar_border(1, BLACK)
     exp_status_bar.set_color(YELLOW, BLACK, RED)
-
+    exp_status_bar.set_label("XP", BLACK)
+    exp_status_bar.set_offset_padding(10, 0)
     exp_status_bar.position_direction(CollisionDirection.TOP)
 
 def next_level():
@@ -394,6 +396,7 @@ def next_level():
 def recreate_screen():
     create_player()
     create_exp_status_bar()
+    update_exp_status_bar()
 
 def fade_effect():
     color.start_fade(color.original_palette, color.black, 500)
@@ -403,16 +406,16 @@ def fade_effect():
     pause(500)
 
 def update_stats_for_next_level():
-    global player_level, player_exp, player_sprite, remembered_player_x, remembered_player_y
+    global player_level, player_exp
     player_exp = 0
     set_game_stats(player_level)
     music.ba_ding.play()
 
 def set_game_stats(player_level):
+    global player_level
     set_zombie_stats(player_level)
     set_player_stats(player_level)
     set_ghast_stats(player_level)
-    update_exp_status_bar()
 
 def clear_screen():
     remember_player_position(player_sprite)
@@ -559,7 +562,6 @@ def update_exp_status_bar():
     global player_exp_required, player_exp, exp_status_bar
     exp_status_bar.max = player_exp_required
     exp_status_bar.value = player_exp
-    exp_status_bar.set_label("XP", BLACK)
     # exp_status_bar.set_label("EXP: "+ player_exp + "/" + player_exp_required, BLACK)
 def game_over():
     global on_end_screen
@@ -570,6 +572,7 @@ def on_life_zero():
     pass
 info.on_life_zero(on_life_zero)
 
+
 def end_cutscene():
     clear_screen()
     show_end_lore(player_level)
@@ -578,13 +581,15 @@ def end_cutscene():
 
 def show_end_lore(level):
     if (level+1 > PLAYER_WIN_LEVEL and info.life() > 0):
-        game.splash("Game Over", "¡Has logrado escapar!")
+        info.set_life(0)
+        game.splash("GG", "¡Has logrado escapar!")
         story.print_dialog("¡Felicidades, Alex! Has alcanzado el refugio humano.", 80, 90, 50, 150)
         story.print_dialog("Gracias a tu ingenio, los supervivientes ahora tienen una oportunidad.", 80, 90, 50, 150)
         story.print_dialog("Con tu Micro:bit, comenzará la investigación para encontrar una cura.", 80, 90, 50, 150)
         story.print_dialog("El destino de la humanidad está en buenas manos.", 80, 90, 50, 150)
     else:
-        game.splash("Game Over", "Moriste")
+        info.set_life(0)
+        game.splash("NT", "Moriste")
         story.print_dialog("Alex ha caído en su lucha contra las hordas de zombis.", 80, 90, 50, 150)
         story.print_dialog("Aunque su esfuerzo fue valiente, los zombis han tomado el control.", 80, 90, 50, 150)
         story.print_dialog("El refugio humano sigue siendo un sueño distante...", 80, 90, 50, 150)
@@ -846,8 +851,8 @@ def follow_player(enemy_sprite: Sprite, ghast_speed: int):
 
 def on_up_pressed():
     global direction
-    if on_menu:
-        pass
+    if on_menu or on_lore_screen or on_end_screen:
+        return
     else:
         animation.stop_animation(animation.AnimationTypes.All, player_sprite)
         animation.run_image_animation(player_sprite,
@@ -932,8 +937,8 @@ controller.up.on_event(ControllerButtonEvent.PRESSED, on_up_pressed)
 
 def on_left_pressed():
     global direction
-    if on_menu:
-        pass
+    if on_menu or on_lore_screen or on_end_screen:
+        return
     else:
         animation.stop_animation(animation.AnimationTypes.All, player_sprite)
         animation.run_image_animation(player_sprite,
@@ -1018,8 +1023,8 @@ controller.left.on_event(ControllerButtonEvent.PRESSED, on_left_pressed)
 
 def on_right_pressed():
     global direction
-    if on_menu:
-        pass
+    if on_menu or on_lore_screen or on_end_screen:
+        return
     else:
         animation.stop_animation(animation.AnimationTypes.All, player_sprite)
         animation.run_image_animation(player_sprite,
@@ -1104,8 +1109,8 @@ controller.right.on_event(ControllerButtonEvent.PRESSED, on_right_pressed)
 
 def on_down_pressed():
     global direction
-    if on_menu:
-        pass
+    if on_menu or on_lore_screen or on_end_screen:
+        return
     else:
         animation.stop_animation(animation.AnimationTypes.All, player_sprite)
         animation.run_image_animation(player_sprite,
@@ -1190,8 +1195,8 @@ controller.down.on_event(ControllerButtonEvent.PRESSED, on_down_pressed)
 # Right
 
 def on_right_released():
-    if on_menu:
-            pass
+    if on_menu or on_lore_screen or on_end_screen:
+        return
     else:
         animation.stop_animation(animation.AnimationTypes.All, player_sprite)
         animation.run_image_animation(player_sprite, [img("""
@@ -1216,8 +1221,8 @@ controller.right.onEvent(ControllerButtonEvent.Released, on_right_released)
 
 # Left
 def on_left_released():
-    if on_menu:
-        pass
+    if on_menu or on_lore_screen or on_end_screen:
+        return
     else:
         animation.stop_animation(animation.AnimationTypes.All, player_sprite)
         animation.run_image_animation(player_sprite, [img("""
@@ -1242,8 +1247,8 @@ def on_left_released():
 
 # Up
 def on_up_released():
-    if on_menu:
-        pass
+    if on_menu or on_lore_screen or on_end_screen:
+        return
     else:
         animation.stop_animation(animation.AnimationTypes.All, player_sprite)
         animation.run_image_animation(player_sprite, [img("""
@@ -1268,8 +1273,8 @@ controller.up.onEvent(ControllerButtonEvent.Released, on_up_released)
 
 # Down
 def on_down_released():
-    if on_menu:
-        pass
+    if on_menu or on_lore_screen or on_end_screen:
+        return
     else:
         animation.stop_animation(animation.AnimationTypes.All, player_sprite)
         animation.run_image_animation(player_sprite, [img("""
@@ -1296,14 +1301,12 @@ controller.down.onEvent(ControllerButtonEvent.Released, on_down_released)
 # Button B
 def on_b_pressed():
     global on_menu, player_level
-    if on_menu == True:
-            on_menu = False
-            close_menu()
-            player_level = 10
-            open_zombie_screen()
-            player_level = 10
-    elif on_lore_screen or info.life() == 0:
-        pass
+    if on_menu:
+        on_menu = False
+        close_menu()
+        open_zombie_screen()
+    elif on_lore_screen or on_end_screen or info.life() == 0:
+        return
     else:
         shot()
 controller.B.on_event(ControllerButtonEvent.PRESSED, on_b_pressed)

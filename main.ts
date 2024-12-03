@@ -332,6 +332,7 @@ function initialize_game_data() {
     story.spriteSayText(player_sprite, "ostras pedrin")
     sprites.destroy(skip_lore_sprite)
     create_exp_status_bar()
+    update_exp_status_bar()
     set_game_stats(player_level)
     game.onUpdate(function on_on_update() {
         let target_x: number;
@@ -356,7 +357,7 @@ function initialize_game_data() {
 //  Funcion recursiva para crear zombies en funcion del nivel
 function gamer() {
     
-    while (player_exp < player_exp_required && info.life() > 0) {
+    while (true) {
         pause(1)
         destroy_zombies()
         destroy_bullets()
@@ -383,9 +384,11 @@ function gamer() {
 
 function create_exp_status_bar() {
     
-    exp_status_bar = statusbars.create(90, 8, StatusBarKind.xp_sb)
+    exp_status_bar = statusbars.create(80, 8, StatusBarKind.xp_sb)
     exp_status_bar.setBarBorder(1, BLACK)
     exp_status_bar.setColor(YELLOW, BLACK, RED)
+    exp_status_bar.setLabel("XP", BLACK)
+    exp_status_bar.setOffsetPadding(10, 0)
     exp_status_bar.positionDirection(CollisionDirection.Top)
 }
 
@@ -404,6 +407,7 @@ function next_level() {
 function recreate_screen() {
     create_player()
     create_exp_status_bar()
+    update_exp_status_bar()
 }
 
 function fade_effect() {
@@ -422,10 +426,10 @@ function update_stats_for_next_level() {
 }
 
 function set_game_stats(player_level: number) {
+    
     set_zombie_stats(player_level)
     set_player_stats(player_level)
     set_ghast_stats(player_level)
-    update_exp_status_bar()
 }
 
 function clear_screen() {
@@ -595,7 +599,6 @@ function update_exp_status_bar() {
     
     exp_status_bar.max = player_exp_required
     exp_status_bar.value = player_exp
-    exp_status_bar.setLabel("XP", BLACK)
 }
 
 //  exp_status_bar.set_label("EXP: "+ player_exp + "/" + player_exp_required, BLACK)
@@ -615,13 +618,15 @@ info.onLifeZero(function on_life_zero() {
 })
 function show_end_lore(level: number) {
     if (level + 1 > PLAYER_WIN_LEVEL && info.life() > 0) {
-        game.splash("Game Over", "¡Has logrado escapar!")
+        info.setLife(0)
+        game.splash("GG", "¡Has logrado escapar!")
         story.printDialog("¡Felicidades, Alex! Has alcanzado el refugio humano.", 80, 90, 50, 150)
         story.printDialog("Gracias a tu ingenio, los supervivientes ahora tienen una oportunidad.", 80, 90, 50, 150)
         story.printDialog("Con tu Micro:bit, comenzará la investigación para encontrar una cura.", 80, 90, 50, 150)
         story.printDialog("El destino de la humanidad está en buenas manos.", 80, 90, 50, 150)
     } else {
-        game.splash("Game Over", "Moriste")
+        info.setLife(0)
+        game.splash("NT", "Moriste")
         story.printDialog("Alex ha caído en su lucha contra las hordas de zombis.", 80, 90, 50, 150)
         story.printDialog("Aunque su esfuerzo fue valiente, los zombis han tomado el control.", 80, 90, 50, 150)
         story.printDialog("El refugio humano sigue siendo un sueño distante...", 80, 90, 50, 150)
@@ -898,8 +903,8 @@ function follow_player(enemy_sprite: Sprite, ghast_speed: number) {
 //  Up
 controller.up.onEvent(ControllerButtonEvent.Pressed, function on_up_pressed() {
     
-    if (on_menu) {
-        
+    if (on_menu || on_lore_screen || on_end_screen) {
+        return
     } else {
         animation.stopAnimation(animation.AnimationTypes.All, player_sprite)
         animation.runImageAnimation(player_sprite, [img`
@@ -978,8 +983,8 @@ controller.up.onEvent(ControllerButtonEvent.Pressed, function on_up_pressed() {
 //  Left
 controller.left.onEvent(ControllerButtonEvent.Pressed, function on_left_pressed() {
     
-    if (on_menu) {
-        
+    if (on_menu || on_lore_screen || on_end_screen) {
+        return
     } else {
         animation.stopAnimation(animation.AnimationTypes.All, player_sprite)
         animation.runImageAnimation(player_sprite, [img`
@@ -1058,8 +1063,8 @@ controller.left.onEvent(ControllerButtonEvent.Pressed, function on_left_pressed(
 //  Right
 controller.right.onEvent(ControllerButtonEvent.Pressed, function on_right_pressed() {
     
-    if (on_menu) {
-        
+    if (on_menu || on_lore_screen || on_end_screen) {
+        return
     } else {
         animation.stopAnimation(animation.AnimationTypes.All, player_sprite)
         animation.runImageAnimation(player_sprite, [img`
@@ -1138,8 +1143,8 @@ controller.right.onEvent(ControllerButtonEvent.Pressed, function on_right_presse
 //  Down
 controller.down.onEvent(ControllerButtonEvent.Pressed, function on_down_pressed() {
     
-    if (on_menu) {
-        
+    if (on_menu || on_lore_screen || on_end_screen) {
+        return
     } else {
         animation.stopAnimation(animation.AnimationTypes.All, player_sprite)
         animation.runImageAnimation(player_sprite, [img`
@@ -1218,8 +1223,8 @@ controller.down.onEvent(ControllerButtonEvent.Pressed, function on_down_pressed(
 //  Released
 //  Right
 controller.right.onEvent(ControllerButtonEvent.Released, function on_right_released() {
-    if (on_menu) {
-        
+    if (on_menu || on_lore_screen || on_end_screen) {
+        return
     } else {
         animation.stopAnimation(animation.AnimationTypes.All, player_sprite)
         animation.runImageAnimation(player_sprite, [img`
@@ -1246,8 +1251,8 @@ controller.right.onEvent(ControllerButtonEvent.Released, function on_right_relea
 //  Left
 //  Up
 controller.up.onEvent(ControllerButtonEvent.Released, function on_up_released() {
-    if (on_menu) {
-        
+    if (on_menu || on_lore_screen || on_end_screen) {
+        return
     } else {
         animation.stopAnimation(animation.AnimationTypes.All, player_sprite)
         animation.runImageAnimation(player_sprite, [img`
@@ -1273,8 +1278,8 @@ controller.up.onEvent(ControllerButtonEvent.Released, function on_up_released() 
 })
 //  Down
 controller.down.onEvent(ControllerButtonEvent.Released, function on_down_released() {
-    if (on_menu) {
-        
+    if (on_menu || on_lore_screen || on_end_screen) {
+        return
     } else {
         animation.stopAnimation(animation.AnimationTypes.All, player_sprite)
         animation.runImageAnimation(player_sprite, [img`
@@ -1301,14 +1306,12 @@ controller.down.onEvent(ControllerButtonEvent.Released, function on_down_release
 //  Button B
 controller.B.onEvent(ControllerButtonEvent.Pressed, function on_b_pressed() {
     
-    if (on_menu == true) {
+    if (on_menu) {
         on_menu = false
         close_menu()
-        player_level = 10
         open_zombie_screen()
-        player_level = 10
-    } else if (on_lore_screen || info.life() == 0) {
-        
+    } else if (on_lore_screen || on_end_screen || info.life() == 0) {
+        return
     } else {
         shot()
     }
