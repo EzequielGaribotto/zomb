@@ -12,7 +12,8 @@
         "arcade-story": "github:microsoft/arcade-storytelling#v1.0.3",
         "controller": "*",
         "servo": "*",
-        "feather": "*"
+        "feather": "*",
+        "Color Fading": "github:jwunderl/pxt-color#v0.2.3"
     },
     "files": [
         "main.blocks",

@@ -317,7 +317,6 @@ def initialize_game_data():
     on_zombie_screen = True
     on_menu = False
     on_lore_screen = False
-    #
     player_level = 1
     create_player()
     story.sprite_say_text(player_sprite, "ostras pedrin")
@@ -372,8 +371,13 @@ def next_level():
     remember_player_position(player_sprite)
     destroy_all()
     game.splash("Level Up! - " + player_level)
-    pause(1000)
+    color.start_fade(color.original_palette, color.black, 500)
+    pause(500)
+    color.start_fade(color.black, color.original_palette, 500)
+    scene.set_background_image(assets.image("""xd"""))
+    pause(500)
     show_game_lore(player_level)
+    
     create_player()
     create_exp_status_bar()
     player_sprite.set_position(remembered_player_x, remembered_player_y)
@@ -391,6 +395,7 @@ def destroy_all():
     destroy_all_explosion_particles()
     sprites.destroy(player_sprite)
     sprites.destroy(exp_status_bar)
+    scene.set_background_image(assets.image("""xd"""))
 
 def show_game_lore(player_level):
     if player_level == 2:
@@ -567,19 +572,12 @@ def stats_screen():
     stat_missed_shots = stat_shots - stat_accurate_shots
     stat_precission = (stat_accurate_shots / stat_shots) * 100 if stat_shots > 0 else 0
     story.set_page_pause_length(0, 1000)
+    destroy_all()
+    effects.star_field.end_screen_effect()
     if (player_level >= 11):
         game.splash("Game Over", "You have reached the max level!")
     else:
         game.splash("Game Over", "You died")
-    story.print_dialog("Balas disparadas: " + str(stat_shots), 80, 90, 50, 150)
-    story.print_dialog("Balas acertadas: " + str(stat_accurate_shots), 80, 90, 50, 150)
-    story.print_dialog("Precisión: " + str(stat_precission) + "%", 80, 90, 50, 150)
-    story.print_dialog("Zombis eliminados: " + str(stat_zombies_killed), 80, 90, 50, 150)
-    story.print_dialog("Zombis que escaparon: " + str(stat_zombies_escaped), 80, 90, 50, 150)
-    story.print_dialog("Daño infligido: " + str(stat_damage_dealt), 80, 90, 50, 150)
-    story.print_dialog("Vidas ganadas: " + str(stat_lifes_won), 80, 90, 50, 150)
-    story.print_dialog("Vidas perdidas: " + str(stat_lifes_lost), 80, 90, 50, 150)
-
     if player_level == 11:
         story.print_dialog("¡Felicidades, Alex! Has alcanzado el refugio humano.", 80, 90, 50, 150)
         story.print_dialog("Gracias a tu ingenio, los supervivientes ahora tienen una oportunidad.", 80, 90, 50, 150)
@@ -590,6 +588,14 @@ def stats_screen():
         story.print_dialog("Aunque su esfuerzo fue valiente, los zombis han tomado el control.", 80, 90, 50, 150)
         story.print_dialog("El refugio humano sigue siendo un sueño distante...", 80, 90, 50, 150)
         story.print_dialog("¿Podrá la humanidad encontrar una nueva esperanza?", 80, 90, 50, 150)
+    story.print_dialog("Balas disparadas: " + str(stat_shots), 80, 90, 50, 150)
+    story.print_dialog("Balas acertadas: " + str(stat_accurate_shots), 80, 90, 50, 150)
+    story.print_dialog("Precisión: " + str(stat_precission) + "%", 80, 90, 50, 150)
+    story.print_dialog("Zombis eliminados: " + str(stat_zombies_killed), 80, 90, 50, 150)
+    story.print_dialog("Zombis que escaparon: " + str(stat_zombies_escaped), 80, 90, 50, 150)
+    story.print_dialog("Daño infligido: " + str(stat_damage_dealt), 80, 90, 50, 150)
+    story.print_dialog("Vidas ganadas: " + str(stat_lifes_won), 80, 90, 50, 150)
+    story.print_dialog("Vidas perdidas: " + str(stat_lifes_lost), 80, 90, 50, 150)
 
 # Eventos
 def on_projectile_collision(bullet, zombie):
@@ -653,6 +659,7 @@ statusbars.on_zero(StatusBarKind.enemy_health, on_enemy_life_zero)
 
 
 def on_life_zero():
+    music.spooky.play()
     game_over()
 info.on_life_zero(on_life_zero)
 
@@ -708,7 +715,6 @@ def create_zombie():
     zombie_sprite.set_velocity(-zombie_speed, 0)
     zombie_list.push(zombie_sprite)
     zombie_statusbar = statusbars.create(16, 2, StatusBarKind.enemy_health)
-    zombie_statusbar.set_label("HP")
     zombie_statusbar.max = zombie_hp
     zombie_statusbar.value = zombie_hp
     zombie_statusbar.attachToSprite(zombie_sprite)
@@ -726,8 +732,7 @@ def create_ghast():
         True)
     
     ghast_list.push(ghast_sprite)
-    ghast_statusbar = statusbars.create(16, 2, StatusBarKind.enemy_health)
-    ghast_statusbar.set_label("HP")
+    ghast_statusbar = statusbars.create(24, 2, StatusBarKind.enemy_health)
     ghast_statusbar.max = ghast_hp
     ghast_statusbar.value = ghast_hp
     ghast_statusbar.attach_to_sprite(ghast_sprite)

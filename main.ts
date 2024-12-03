@@ -304,7 +304,6 @@ function initialize_game_data() {
     on_zombie_screen = true
     on_menu = false
     on_lore_screen = false
-    // 
     player_level = 1
     create_player()
     story.spriteSayText(player_sprite, "ostras pedrin")
@@ -398,7 +397,11 @@ function next_level() {
     remember_player_position(player_sprite)
     destroy_all()
     game.splash("Level Up! - " + player_level)
-    pause(1000)
+    color.startFade(color.originalPalette, color.Black, 500)
+    pause(500)
+    color.startFade(color.Black, color.originalPalette, 500)
+    scene.setBackgroundImage(assets.image`xd`)
+    pause(500)
     show_game_lore(player_level)
     create_player()
     create_exp_status_bar()
@@ -419,6 +422,7 @@ function destroy_all() {
     destroy_all_explosion_particles()
     sprites.destroy(player_sprite)
     sprites.destroy(exp_status_bar)
+    scene.setBackgroundImage(assets.image`xd`)
 }
 
 function show_game_lore(player_level: number) {
@@ -619,20 +623,14 @@ function stats_screen() {
     let stat_missed_shots = stat_shots - stat_accurate_shots
     let stat_precission = stat_shots > 0 ? stat_accurate_shots / stat_shots * 100 : 0
     story.setPagePauseLength(0, 1000)
+    destroy_all()
+    effects.starField.endScreenEffect()
     if (player_level >= 11) {
         game.splash("Game Over", "You have reached the max level!")
     } else {
         game.splash("Game Over", "You died")
     }
     
-    story.printDialog("Balas disparadas: " + ("" + stat_shots), 80, 90, 50, 150)
-    story.printDialog("Balas acertadas: " + ("" + stat_accurate_shots), 80, 90, 50, 150)
-    story.printDialog("Precisión: " + ("" + stat_precission) + "%", 80, 90, 50, 150)
-    story.printDialog("Zombis eliminados: " + ("" + stat_zombies_killed), 80, 90, 50, 150)
-    story.printDialog("Zombis que escaparon: " + ("" + stat_zombies_escaped), 80, 90, 50, 150)
-    story.printDialog("Daño infligido: " + ("" + stat_damage_dealt), 80, 90, 50, 150)
-    story.printDialog("Vidas ganadas: " + ("" + stat_lifes_won), 80, 90, 50, 150)
-    story.printDialog("Vidas perdidas: " + ("" + stat_lifes_lost), 80, 90, 50, 150)
     if (player_level == 11) {
         story.printDialog("¡Felicidades, Alex! Has alcanzado el refugio humano.", 80, 90, 50, 150)
         story.printDialog("Gracias a tu ingenio, los supervivientes ahora tienen una oportunidad.", 80, 90, 50, 150)
@@ -645,6 +643,14 @@ function stats_screen() {
         story.printDialog("¿Podrá la humanidad encontrar una nueva esperanza?", 80, 90, 50, 150)
     }
     
+    story.printDialog("Balas disparadas: " + ("" + stat_shots), 80, 90, 50, 150)
+    story.printDialog("Balas acertadas: " + ("" + stat_accurate_shots), 80, 90, 50, 150)
+    story.printDialog("Precisión: " + ("" + stat_precission) + "%", 80, 90, 50, 150)
+    story.printDialog("Zombis eliminados: " + ("" + stat_zombies_killed), 80, 90, 50, 150)
+    story.printDialog("Zombis que escaparon: " + ("" + stat_zombies_escaped), 80, 90, 50, 150)
+    story.printDialog("Daño infligido: " + ("" + stat_damage_dealt), 80, 90, 50, 150)
+    story.printDialog("Vidas ganadas: " + ("" + stat_lifes_won), 80, 90, 50, 150)
+    story.printDialog("Vidas perdidas: " + ("" + stat_lifes_lost), 80, 90, 50, 150)
 }
 
 //  Eventos
@@ -714,6 +720,7 @@ statusbars.onZero(StatusBarKind.EnemyHealth, function on_enemy_life_zero(bar: St
     update_exp_status_bar()
 })
 info.onLifeZero(function on_life_zero() {
+    music.spooky.play()
     game_over()
 })
 function create_enemy() {
@@ -771,7 +778,6 @@ function create_zombie() {
     zombie_sprite.setVelocity(-zombie_speed, 0)
     zombie_list.push(zombie_sprite)
     zombie_statusbar = statusbars.create(16, 2, StatusBarKind.EnemyHealth)
-    zombie_statusbar.setLabel("HP")
     zombie_statusbar.max = zombie_hp
     zombie_statusbar.value = zombie_hp
     zombie_statusbar.attachToSprite(zombie_sprite)
@@ -785,8 +791,7 @@ function create_ghast() {
     ghast_sprite.setPosition(player_sprite.x + RIGHT_BOUNDARY, ypos_ghast_sprite)
     animation.runImageAnimation(ghast_sprite, assets.animation`ghast`, 150, true)
     ghast_list.push(ghast_sprite)
-    let ghast_statusbar = statusbars.create(16, 2, StatusBarKind.EnemyHealth)
-    ghast_statusbar.setLabel("HP")
+    let ghast_statusbar = statusbars.create(24, 2, StatusBarKind.EnemyHealth)
     ghast_statusbar.max = ghast_hp
     ghast_statusbar.value = ghast_hp
     ghast_statusbar.attachToSprite(ghast_sprite)
