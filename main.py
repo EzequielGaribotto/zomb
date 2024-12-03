@@ -599,13 +599,16 @@ def on_projectile_collision_with_zombie(bullet, zombie):
     zombie_statusbar = statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, zombie)
     if (zombie_statusbar): zombie_statusbar.value += -player_power
     if (zombie): zombie.set_velocity(-zombie_stun_speed, 0)
+    orange = 4
+    tint_sprite_time(zombie,orange,200)
     pause(zombie_stun_duration)
     if (zombie): zombie.set_velocity(-zombie_speed, 0)
+
 sprites.on_overlap(SpriteKind.projectile,SpriteKind.zombie,on_projectile_collision_with_zombie)
 
 
 def on_projectile_collision_with_ghast(bullet, ghast):
-    global player_power, player_exp, ghast_xp_reward, ghast_stun_speed, ghast_stun_duration, stat_accurate_shots, stat_damage_dealt
+    global player_power, player_exp, ghast_xp_reward, ghast_stun_speed, ghast_stun_duration, stat_accurate_shots, stat_damage_dealt, ghast_speed
     stat_accurate_shots+=1
     stat_damage_dealt+=player_power
     animate_bullet_collision(bullet)
@@ -613,8 +616,10 @@ def on_projectile_collision_with_ghast(bullet, ghast):
     ghast_statusbar = statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, ghast)
     if (ghast_statusbar): ghast_statusbar.value += -player_power
     if (ghast): ghast.set_velocity(-ghast_stun_speed, 0)
+    blue = 8
+    tint_sprite_time(ghast,blue,200)
     pause(ghast_stun_duration)
-    if (ghast): ghast.set_velocity(-zombie_speed, 0)
+    if (ghast): ghast.set_velocity(-ghast_speed, 0)
 sprites.on_overlap(SpriteKind.projectile,SpriteKind.ghast,on_projectile_collision_with_ghast)
 
 
@@ -1484,3 +1489,13 @@ def tint_sprite(sprite: Sprite, tint_color: int):
     sprite.set_image(original_image)
 
 
+def tint_sprite_time(sprite: Sprite, tint_color: int, duration: int):
+    original_image = sprite.image.clone()
+    tinted_image = original_image.clone()
+    for x in range(tinted_image.width):
+        for y in range(tinted_image.height):
+            if tinted_image.get_pixel(x, y) != 0:
+                tinted_image.set_pixel(x, y, tint_color)
+    sprite.set_image(tinted_image)
+    pause(duration)
+    sprite.set_image(original_image)

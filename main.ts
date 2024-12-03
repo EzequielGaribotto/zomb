@@ -641,6 +641,8 @@ sprites.onOverlap(SpriteKind.projectile, SpriteKind.zombie, function on_projecti
         zombie.setVelocity(-zombie_stun_speed, 0)
     }
     
+    let orange = 4
+    tint_sprite_time(zombie, orange, 200)
     pause(zombie_stun_duration)
     if (zombie) {
         zombie.setVelocity(-zombie_speed, 0)
@@ -662,9 +664,11 @@ sprites.onOverlap(SpriteKind.projectile, SpriteKind.ghast, function on_projectil
         ghast.setVelocity(-ghast_stun_speed, 0)
     }
     
+    let blue = 8
+    tint_sprite_time(ghast, blue, 200)
     pause(ghast_stun_duration)
     if (ghast) {
-        ghast.setVelocity(-zombie_speed, 0)
+        ghast.setVelocity(-ghast_speed, 0)
     }
     
 })
@@ -1499,6 +1503,22 @@ function tint_sprite(sprite: Sprite, tint_color: number) {
             
         }
     }
+    sprite.setImage(original_image)
+}
+
+function tint_sprite_time(sprite: Sprite, tint_color: number, duration: number) {
+    let original_image = sprite.image.clone()
+    let tinted_image = original_image.clone()
+    for (let x = 0; x < tinted_image.width; x++) {
+        for (let y = 0; y < tinted_image.height; y++) {
+            if (tinted_image.getPixel(x, y) != 0) {
+                tinted_image.setPixel(x, y, tint_color)
+            }
+            
+        }
+    }
+    sprite.setImage(tinted_image)
+    pause(duration)
     sprite.setImage(original_image)
 }
 
