@@ -321,9 +321,7 @@ def initialize_game_data():
     create_player()
     story.sprite_say_text(player_sprite, "ostras pedrin")
     sprites.destroy(skip_lore_sprite)
-    set_player_stats(player_level)
-    set_zombie_stats(player_level)
-    set_ghast_stats(player_level)
+    set_game_stats(player_level)
     create_exp_status_bar()
     game.on_update(on_on_update)
     info.set_life(3)
@@ -379,9 +377,13 @@ def update_stats_for_next_level():
     global player_level, player_exp, player_sprite, remembered_player_x, remembered_player_y
     player_exp = 0
     update_exp_status_bar()
+    set_game_stats(player_level)
+    music.ba_ding.play()
+
+def set_game_stats(player_level):
     set_zombie_stats(player_level)
     set_player_stats(player_level)
-    music.ba_ding.play()
+    set_ghast_stats(player_level)
 
 def clear_screen():
     remember_player_position(player_sprite)
@@ -436,83 +438,51 @@ def show_game_lore(player_level):
 def set_player_stats(level: int):
     global player_hp, player_power, player_speed, player_exp_required, stat_lifes_won, player_exp_punish, explosion_power, blood_explosion_power, explosion_particle_amt, blood_explosion_particle_amt
     global blood_explosion_max_range, blood_explosion_min_range, explosion_min_range, explosion_max_range
+
     if info.life() < 3:
         info.change_life_by(+1)
         stat_lifes_won += 1
 
-    stats = {
-        "hp": 100 + (level - 1) * 50,
-        "power": 50 + (level - 1) * 10,
-        "speed": 200 + (level - 1) * 10,
-        "exp_required": 100 * level,
-        "exp_punish": level,
+    player_hp = 100 + (level - 1) * 50
+    player_power = 50 + (level - 1) * 10
+    player_speed = 200 + (level - 1) * 10
+    player_exp_required = 100 * level
+    player_exp_punish = level
 
-        "explosion_power": 50 + (level -3) * 15,
-        "explosion_particle_amt": 10 + (level -3) * 3,
-        "explosion_min_range":  30 + (level -1) * 7,
-        "explosion_max_range":  30 + (level -1) * 7,
+    explosion_power = 50 + (level - 3) * 15
+    explosion_particle_amt = 10 + (level - 3) * 3
+    explosion_min_range = 30 + (level - 1) * 7
+    explosion_max_range = 30 + (level - 1) * 7
 
-        "blood_explosion_power": 5 + (level -1) * 5,
-        "blood_explosion_min_range":  15 + (level -1) * 5,
-        "blood_explosion_max_range":  25 + (level -1) * 5,
-        "blood_explosion_particle_amt": 10 + (level -1) * 5,
-    }
-
-    player_hp = stats["hp"]
-    player_power = stats["power"]
-    player_speed = stats["speed"]
-    player_exp_required = stats["exp_required"]
-    player_exp_punish = stats["exp_punish"]
-    explosion_power = stats["explosion_power"]
-    explosion_particle_amt = stats["explosion_particle_amt"]
-    explosion_min_range = stats["explosion_min_range"]
-    explosion_max_range = stats["explosion_max_range"]
-
-    blood_explosion_power = stats["blood_explosion_power"]
-    blood_explosion_particle_amt = stats["blood_explosion_particle_amt"]
-    blood_explosion_min_range = stats["blood_explosion_min_range"]
-    blood_explosion_max_range = stats["blood_explosion_max_range"]
+    blood_explosion_power = 5 + (level - 1) * 5
+    blood_explosion_min_range = 15 + (level - 1) * 5
+    blood_explosion_max_range = 25 + (level - 1) * 5
+    blood_explosion_particle_amt = 10 + (level - 1) * 5
 
 
 def set_zombie_stats(level: int):
     global zombie_hp, zombie_power, zombie_speed, delay_min_enemies, delay_max_enemies
     global zombie_xp_reward, zombie_stun_speed, zombie_stun_duration
 
-    stats = {
-        "hp": 100 + (level - 1) * 50,
-        "power": 50 + (level - 1) * 10,
-        "speed": 35 + (level - 1) * 5,
-        "delay_min": max(1000 - (level - 1) * 100, 100),
-        "delay_max": max(1500 - (level - 1) * 100, 600),
-        "xp_reward": 50,
-        "stun_duration": max(2000 - (level - 1) * 200, 200),
-        "stun_speed": 10 + (level - 1) * 2
-    }
+    zombie_hp = 100 + (level - 1) * 50
+    zombie_power = 50 + (level - 1) * 10
+    zombie_speed = 35 + (level - 1) * 5
+    delay_min_enemies = max(1000 - (level - 1) * 100, 100)
+    delay_max_enemies = max(1500 - (level - 1) * 100, 600)
+    zombie_xp_reward = 50
+    zombie_stun_duration = max(2000 - (level - 1) * 200, 200)
+    zombie_stun_speed = 10 + (level - 1) * 2
 
-    zombie_hp = stats["hp"]
-    zombie_power = stats["power"]
-    zombie_speed = stats["speed"]
-    delay_min_enemies = stats["delay_min"]
-    delay_max_enemies = stats["delay_max"]
-    zombie_xp_reward = stats["xp_reward"]
-    zombie_stun_duration = stats["stun_duration"]
-    zombie_stun_speed = stats["stun_speed"]
 
 def set_ghast_stats(level: int):
     global ghast_speed, ghast_xp_reward, ghast_hp, delay_min_ghast, delay_max_ghast
 
-    stats = {
-        "speed": 50 + (level - 3) * 5,
-        "xp_reward": 50,
-        "hp": 1000 + (level - 3) * 75,
-        "delay_min": 10000 - (level - 3) * 1000,
-        "delay_max": 15000 - (level - 3) * 500
-    }
-    delay_min_ghast = stats["delay_min"]
-    delay_max_ghast = stats["delay_max"]
-    ghast_speed = stats["speed"]
-    ghast_xp_reward = stats["xp_reward"]
-    ghast_hp = stats["hp"]
+    ghast_speed = 50 + (level - 3) * 5
+    ghast_xp_reward = 50
+    ghast_hp = 1000 + (level - 3) * 75
+    delay_min_ghast = 10000 - (level - 3) * 1000
+    delay_max_ghast = 15000 - (level - 3) * 500
+
 
 def destroy_bullets():
     global bullet_list

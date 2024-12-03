@@ -302,9 +302,7 @@ function initialize_game_data() {
     create_player()
     story.spriteSayText(player_sprite, "ostras pedrin")
     sprites.destroy(skip_lore_sprite)
-    set_player_stats(player_level)
-    set_zombie_stats(player_level)
-    set_ghast_stats(player_level)
+    set_game_stats(player_level)
     create_exp_status_bar()
     game.onUpdate(function on_on_update() {
         let target_x: number;
@@ -389,9 +387,14 @@ function update_stats_for_next_level() {
     
     player_exp = 0
     update_exp_status_bar()
+    set_game_stats(player_level)
+    music.baDing.play()
+}
+
+function set_game_stats(player_level: number) {
     set_zombie_stats(player_level)
     set_player_stats(player_level)
-    music.baDing.play()
+    set_ghast_stats(player_level)
 }
 
 function clear_screen() {
@@ -458,76 +461,41 @@ function set_player_stats(level: number) {
         stat_lifes_won += 1
     }
     
-    let stats = {
-        "hp" : 100 + (level - 1) * 50,
-        "power" : 50 + (level - 1) * 10,
-        "speed" : 200 + (level - 1) * 10,
-        "exp_required" : 100 * level,
-        "exp_punish" : level,
-        "explosion_power" : 50 + (level - 3) * 15,
-        "explosion_particle_amt" : 10 + (level - 3) * 3,
-        "explosion_min_range" : 30 + (level - 1) * 7,
-        "explosion_max_range" : 30 + (level - 1) * 7,
-        "blood_explosion_power" : 5 + (level - 1) * 5,
-        "blood_explosion_min_range" : 15 + (level - 1) * 5,
-        "blood_explosion_max_range" : 25 + (level - 1) * 5,
-        "blood_explosion_particle_amt" : 10 + (level - 1) * 5,
-    }
-    
-    player_hp = stats["hp"]
-    player_power = stats["power"]
-    player_speed = stats["speed"]
-    player_exp_required = stats["exp_required"]
-    player_exp_punish = stats["exp_punish"]
-    explosion_power = stats["explosion_power"]
-    explosion_particle_amt = stats["explosion_particle_amt"]
-    explosion_min_range = stats["explosion_min_range"]
-    explosion_max_range = stats["explosion_max_range"]
-    blood_explosion_power = stats["blood_explosion_power"]
-    blood_explosion_particle_amt = stats["blood_explosion_particle_amt"]
-    blood_explosion_min_range = stats["blood_explosion_min_range"]
-    blood_explosion_max_range = stats["blood_explosion_max_range"]
+    player_hp = 100 + (level - 1) * 50
+    player_power = 50 + (level - 1) * 10
+    player_speed = 200 + (level - 1) * 10
+    player_exp_required = 100 * level
+    player_exp_punish = level
+    explosion_power = 50 + (level - 3) * 15
+    explosion_particle_amt = 10 + (level - 3) * 3
+    explosion_min_range = 30 + (level - 1) * 7
+    explosion_max_range = 30 + (level - 1) * 7
+    blood_explosion_power = 5 + (level - 1) * 5
+    blood_explosion_min_range = 15 + (level - 1) * 5
+    blood_explosion_max_range = 25 + (level - 1) * 5
+    blood_explosion_particle_amt = 10 + (level - 1) * 5
 }
 
 function set_zombie_stats(level: number) {
     
     
-    let stats = {
-        "hp" : 100 + (level - 1) * 50,
-        "power" : 50 + (level - 1) * 10,
-        "speed" : 35 + (level - 1) * 5,
-        "delay_min" : Math.max(1000 - (level - 1) * 100, 100),
-        "delay_max" : Math.max(1500 - (level - 1) * 100, 600),
-        "xp_reward" : 50,
-        "stun_duration" : Math.max(2000 - (level - 1) * 200, 200),
-        "stun_speed" : 10 + (level - 1) * 2,
-    }
-    
-    zombie_hp = stats["hp"]
-    zombie_power = stats["power"]
-    zombie_speed = stats["speed"]
-    delay_min_enemies = stats["delay_min"]
-    delay_max_enemies = stats["delay_max"]
-    zombie_xp_reward = stats["xp_reward"]
-    zombie_stun_duration = stats["stun_duration"]
-    zombie_stun_speed = stats["stun_speed"]
+    zombie_hp = 100 + (level - 1) * 50
+    zombie_power = 50 + (level - 1) * 10
+    zombie_speed = 35 + (level - 1) * 5
+    delay_min_enemies = Math.max(1000 - (level - 1) * 100, 100)
+    delay_max_enemies = Math.max(1500 - (level - 1) * 100, 600)
+    zombie_xp_reward = 50
+    zombie_stun_duration = Math.max(2000 - (level - 1) * 200, 200)
+    zombie_stun_speed = 10 + (level - 1) * 2
 }
 
 function set_ghast_stats(level: number) {
     
-    let stats = {
-        "speed" : 50 + (level - 3) * 5,
-        "xp_reward" : 50,
-        "hp" : 1000 + (level - 3) * 75,
-        "delay_min" : 10000 - (level - 3) * 1000,
-        "delay_max" : 15000 - (level - 3) * 500,
-    }
-    
-    delay_min_ghast = stats["delay_min"]
-    delay_max_ghast = stats["delay_max"]
-    ghast_speed = stats["speed"]
-    ghast_xp_reward = stats["xp_reward"]
-    ghast_hp = stats["hp"]
+    ghast_speed = 50 + (level - 3) * 5
+    ghast_xp_reward = 50
+    ghast_hp = 1000 + (level - 3) * 75
+    delay_min_ghast = 10000 - (level - 3) * 1000
+    delay_max_ghast = 15000 - (level - 3) * 500
 }
 
 function destroy_bullets() {
