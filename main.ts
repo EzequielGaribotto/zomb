@@ -5,7 +5,7 @@ let zombie_sprite : Sprite = null
 let bullet_sprite : Sprite = null
 let ghast_sprite : Sprite = null
 //  Sprite lists
-let bullet_list : Bullet[] = []
+let bullet_list : Sprite[] = []
 let zombie_list : Sprite[] = []
 let ghast_list : Sprite[] = []
 let deleted_zombies_list : Sprite[] = []
@@ -57,7 +57,7 @@ let player_exp_punish = 0
 let on_menu = true
 let on_zombie_screen = false
 let on_lore_screen = false
-let on_stats_screen = false
+let on_end_screen = false
 //  CONSTANTS
 //  Boundaries
 let RIGHT_BOUNDARY = 160
@@ -90,6 +90,9 @@ let ghast_timer = game.runtime()
 let footstep_timer = game.runtime()
 let remembered_player_x = 20
 let remembered_player_y = 60
+//  Player level
+let player_start_level = 1
+let player_win_level = 10
 //  Classes
 namespace SpriteKind {
     export const projectile = SpriteKind.create()
@@ -97,16 +100,6 @@ namespace SpriteKind {
     export const player = SpriteKind.create()
     export const explosion = SpriteKind.create()
     export const blood_explosion = SpriteKind.create()
-}
-
-class Bullet {
-    bullet_id: Number
-    sprite: Sprite
-    constructor(sprite: Sprite, bullet_id: Number) {
-        this.bullet_id = bullet_id
-        this.sprite = sprite
-    }
-    
 }
 
 //  main
@@ -294,6 +287,7 @@ function create_skip_lore_sprite() {
 function open_zombie_screen() {
     initialize_game_data()
     gamer()
+    game_over()
 }
 
 function initialize_game_data() {
@@ -304,7 +298,7 @@ function initialize_game_data() {
     on_zombie_screen = true
     on_menu = false
     on_lore_screen = false
-    player_level = 1
+    player_level = player_start_level
     create_player()
     story.spriteSayText(player_sprite, "ostras pedrin")
     sprites.destroy(skip_lore_sprite)
@@ -332,34 +326,10 @@ function initialize_game_data() {
     info.setLife(3)
 }
 
-function create_exp_status_bar() {
-    
-    exp_status_bar = statusbars.create(40, 4, StatusBarKind.Energy)
-    exp_status_bar.positionDirection(CollisionDirection.Top)
-}
-
 //  Funcion recursiva para crear zombies en funcion del nivel
 function gamer() {
     
     update_exp_status_bar()
-    if (player_level == 11) {
-        //  Caso base 1
-        music.powerUp.play()
-        game_over()
-        return
-    }
-    
-    if (info.life() == 0) {
-        //  Caso base 2
-        music.spooky.play()
-        game_over()
-        return
-    }
-    
-    if (on_stats_screen) {
-        return
-    }
-    
     while (player_exp < player_exp_required && info.life() > 0) {
         pause(1)
         destroy_zombies()
@@ -367,47 +337,68 @@ function gamer() {
         if (player_exp < player_exp_required && info.life() > 0) {
             create_enemy()
         } else {
+            if (info.life() == 0) {
+                music.spooky.play()
+                return
+            }
+            
+            if (player_level + 1 > player_win_level) {
+                //  Caso base 1 - Alex
+                music.powerUp.play()
+                return
+            }
+            
             next_level()
         }
         
     }
 }
 
+function create_exp_status_bar() {
+    
+    exp_status_bar = statusbars.create(40, 4, StatusBarKind.Energy)
+    exp_status_bar.positionDirection(CollisionDirection.Top)
+}
+
 function next_level() {
     
-    if (info.life() > 0) {
-        player_level += 1
-    }
-    
-    if (player_level == 11) {
-        //  Caso base 1
-        return
-    }
-    
-    if (info.life() == 0) {
-        //  Caso base 2
-        return
-    }
+    player_level += 1
+    update_stats_for_next_level()
+    clear_screen()
+    game.splash("Level Up! - " + player_level)
+    fade_effect()
+    show_game_lore(player_level)
+    recreate_screen()
+    gamer()
+}
+
+function recreate_screen() {
+    create_player()
+    create_exp_status_bar()
+}
+
+function fade_effect() {
+    color.startFade(color.originalPalette, color.Black, 500)
+    pause(500)
+    color.startFade(color.Black, color.originalPalette, 500)
+    scene.setBackgroundImage(assets.image`xd`)
+    pause(500)
+}
+
+function update_stats_for_next_level() {
     
     player_exp = 0
     update_exp_status_bar()
     set_zombie_stats(player_level)
     set_player_stats(player_level)
     music.baDing.play()
+}
+
+function clear_screen() {
     remember_player_position(player_sprite)
     destroy_all()
+    effects.starField.endScreenEffect()
     let ghast_exists = false
-    game.splash("Level Up! - " + player_level)
-    color.startFade(color.originalPalette, color.Black, 500)
-    pause(500)
-    color.startFade(color.Black, color.originalPalette, 500)
-    scene.setBackgroundImage(assets.image`xd`)
-    pause(500)
-    show_game_lore(player_level)
-    create_player()
-    create_exp_status_bar()
-    player_sprite.setPosition(remembered_player_x, remembered_player_y)
-    gamer()
 }
 
 function remember_player_position(player_sprite: Sprite) {
@@ -543,8 +534,8 @@ function destroy_bullets() {
     
     
     for (let b of bullet_list) {
-        if (b.sprite.x < LEFT_BOUNDARY - player_sprite.x || b.sprite.x > RIGHT_BOUNDARY + player_sprite.x || b.sprite.y > BOTTOM_BOUNDARY + player_sprite.y || b.sprite.y < TOP_BOUNDARY - player_sprite.y) {
-            sprites.destroy(b.sprite)
+        if (b.x < LEFT_BOUNDARY - player_sprite.x || b.x > RIGHT_BOUNDARY + player_sprite.x || b.y > BOTTOM_BOUNDARY + player_sprite.y || b.y < TOP_BOUNDARY - player_sprite.y) {
+            sprites.destroy(b)
         }
         
     }
@@ -582,7 +573,7 @@ function destroy_all_bullets() {
     
     
     for (let b of bullet_list) {
-        sprites.destroy(b.sprite)
+        sprites.destroy(b)
     }
 }
 
@@ -610,40 +601,39 @@ function update_exp_status_bar() {
 
 function game_over() {
     
-    on_stats_screen = true
-    story.startCutscene(stats_cutscene)
+    on_end_screen = true
+    story.startCutscene(function end_cutscene() {
+        clear_screen()
+        show_end_lore(player_level)
+        show_stats()
+        game.over()
+    })
 }
 
-function stats_cutscene() {
-    stats_screen()
-    game.over()
-}
-
-function stats_screen() {
+info.onLifeZero(function on_life_zero() {
     
-    let stat_missed_shots = stat_shots - stat_accurate_shots
-    let stat_precission = stat_shots > 0 ? stat_accurate_shots / stat_shots * 100 : 0
-    story.setPagePauseLength(0, 1000)
-    destroy_all()
-    effects.starField.endScreenEffect()
-    if (player_level >= 11) {
-        game.splash("Game Over", "You have reached the max level!")
-    } else {
-        game.splash("Game Over", "You died")
-    }
-    
-    if (player_level == 11) {
+})
+function show_end_lore(level: number) {
+    if (level + 1 > player_win_level && info.life() > 0) {
+        game.splash("Game Over", "¡Has logrado escapar!")
         story.printDialog("¡Felicidades, Alex! Has alcanzado el refugio humano.", 80, 90, 50, 150)
         story.printDialog("Gracias a tu ingenio, los supervivientes ahora tienen una oportunidad.", 80, 90, 50, 150)
         story.printDialog("Con tu Micro:bit, comenzará la investigación para encontrar una cura.", 80, 90, 50, 150)
         story.printDialog("El destino de la humanidad está en buenas manos.", 80, 90, 50, 150)
     } else {
+        game.splash("Game Over", "Moriste")
         story.printDialog("Alex ha caído en su lucha contra las hordas de zombis.", 80, 90, 50, 150)
         story.printDialog("Aunque su esfuerzo fue valiente, los zombis han tomado el control.", 80, 90, 50, 150)
         story.printDialog("El refugio humano sigue siendo un sueño distante...", 80, 90, 50, 150)
         story.printDialog("¿Podrá la humanidad encontrar una nueva esperanza?", 80, 90, 50, 150)
     }
     
+}
+
+function show_stats() {
+    let stat_missed_shots = stat_shots - stat_accurate_shots
+    let stat_precission = stat_shots > 0 ? stat_accurate_shots / stat_shots * 100 : 0
+    story.setPagePauseLength(0, 1000)
     story.printDialog("Balas disparadas: " + ("" + stat_shots), 80, 90, 50, 150)
     story.printDialog("Balas acertadas: " + ("" + stat_accurate_shots), 80, 90, 50, 150)
     story.printDialog("Precisión: " + ("" + stat_precission) + "%", 80, 90, 50, 150)
@@ -723,10 +713,6 @@ statusbars.onZero(StatusBarKind.EnemyHealth, function on_enemy_life_zero(bar: St
     
     bar.spriteAttachedTo().destroy(effects.disintegrate)
     update_exp_status_bar()
-})
-info.onLifeZero(function on_life_zero() {
-    music.spooky.play()
-    game_over()
 })
 function create_enemy() {
     
@@ -1281,9 +1267,7 @@ function create_bullet(): Sprite {
         . . . . . . . . . . . . . . . .
         . . . . . . . . . . . . . . . .
         `, SpriteKind.projectile)
-    let bullet_id = bullet_list.length + 1
-    let bullet = new Bullet(bullet_sprite, bullet_id)
-    bullet_list.push(bullet)
+    bullet_list.push(bullet_sprite)
     return bullet_sprite
 }
 
@@ -1299,7 +1283,6 @@ function on_a_pressed() {
                 
                 sprites.destroy(skip_lore_sprite)
                 open_zombie_screen()
-                story.startCutscene(stats_cutscene)
             })
         })
         on_lore_screen = true
@@ -1309,7 +1292,7 @@ function on_a_pressed() {
     } else if (on_zombie_screen == true) {
         story.cancelCurrentCutscene()
         on_zombie_screen = false
-    } else if (on_stats_screen == true) {
+    } else if (on_end_screen == true) {
         story.clearAllText()
     }
     

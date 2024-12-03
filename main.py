@@ -5,7 +5,7 @@ zombie_sprite: Sprite = None
 bullet_sprite: Sprite = None
 ghast_sprite: Sprite = None
 # Sprite lists
-bullet_list:List[Bullet] = []
+bullet_list:List[Sprite] = []
 zombie_list:List[Sprite] = []
 ghast_list:List[Sprite] = []
 deleted_zombies_list:List[Sprite] = []
@@ -65,7 +65,7 @@ player_exp_punish = 0
 on_menu = True
 on_zombie_screen = False
 on_lore_screen = False
-on_stats_screen = False
+on_end_screen = False
 
 # CONSTANTS
 # Boundaries
@@ -106,6 +106,11 @@ footstep_timer = game.runtime()
 remembered_player_x = 20
 remembered_player_y = 60
 
+# Player level
+player_start_level = 1
+player_win_level = 10
+
+
 # Classes
 @namespace
 class SpriteKind:
@@ -114,11 +119,6 @@ class SpriteKind:
     player = SpriteKind.create()
     explosion = SpriteKind.create()
     blood_explosion = SpriteKind.create()
-
-class Bullet:
-    def __init__(self, sprite: Sprite, bullet_id: Number):
-        self.bullet_id = bullet_id
-        self.sprite: Sprite = sprite
 
 # main
 open_main_screen()
@@ -302,22 +302,22 @@ def zombie_cutscene():
     global skip_lore_sprite
     sprites.destroy(skip_lore_sprite)
     open_zombie_screen()
-    story.start_cutscene(stats_cutscene)
 
 # Pantalla de juego
 def open_zombie_screen():
     initialize_game_data()
     gamer()
+    game_over()
 
 def initialize_game_data():
     scene.set_background_image(assets.image("""
             cityscape
         """))
-    global on_zombie_screen, on_menu, ypos_zombie_sprite, player_level, on_lore_screen, skip_lore_sprite, exp_status_bar, player_exp, player_exp_required
+    global on_zombie_screen, on_menu, ypos_zombie_sprite, player_level, on_lore_screen, skip_lore_sprite, exp_status_bar, player_exp, player_exp_required, player_start_level
     on_zombie_screen = True
     on_menu = False
     on_lore_screen = False
-    player_level = 1
+    player_level = player_start_level
     create_player()
     story.sprite_say_text(player_sprite, "ostras pedrin")
     sprites.destroy(skip_lore_sprite)
@@ -328,24 +328,11 @@ def initialize_game_data():
     game.on_update(on_on_update)
     info.set_life(3)
 
-def create_exp_status_bar():
-    global exp_status_bar
-    exp_status_bar = statusbars.create(40, 4, StatusBarKind.Energy)
-    exp_status_bar.position_direction(CollisionDirection.TOP)
 # Funcion recursiva para crear zombies en funcion del nivel
 def gamer():
-    global delay_min_enemies, delay_max_enemies, player_exp, player_exp_required, player_hp
+    global player_exp, player_exp_required
     update_exp_status_bar()
-    if (player_level == 11): # Caso base 1
-        music.power_up.play()
-        game_over()
-        return
-    if (info.life() == 0): # Caso base 2
-        music.spooky.play()
-        game_over()
-        return
-    if (on_stats_screen):
-        return
+
     while player_exp < player_exp_required and info.life() > 0:
         pause(1)
         destroy_zombies()
@@ -353,36 +340,54 @@ def gamer():
         if player_exp < player_exp_required and info.life() > 0:
             create_enemy()
         else:
+            if (info.life() == 0):
+                music.spooky.play()
+                return
+            if (player_level+1 > player_win_level): # Caso base 1 - Alex
+                music.power_up.play()
+                return
             next_level()
 
+def create_exp_status_bar():
+    global exp_status_bar
+    exp_status_bar = statusbars.create(40, 4, StatusBarKind.Energy)
+    exp_status_bar.position_direction(CollisionDirection.TOP)
+
 def next_level():
-    global player_level, player_exp, player_sprite, remembered_player_x, remembered_player_y
-    if (info.life() > 0):
-        player_level += 1
-    if (player_level == 11): # Caso base 1
-        return
-    if (info.life() == 0): # Caso base 2
-        return
-    player_exp = 0
-    update_exp_status_bar()
-    set_zombie_stats(player_level)
-    set_player_stats(player_level)
-    music.ba_ding.play()
-    remember_player_position(player_sprite)
-    destroy_all()
-    ghast_exists = False
+    global player_level
+    player_level += 1
+    update_stats_for_next_level()
+    clear_screen()
     game.splash("Level Up! - " + player_level)
+    fade_effect()
+    show_game_lore(player_level)
+    recreate_screen()
+    gamer()
+
+def recreate_screen():
+    create_player()
+    create_exp_status_bar()
+
+def fade_effect():
     color.start_fade(color.original_palette, color.black, 500)
     pause(500)
     color.start_fade(color.black, color.original_palette, 500)
     scene.set_background_image(assets.image("""xd"""))
     pause(500)
-    show_game_lore(player_level)
-    
-    create_player()
-    create_exp_status_bar()
-    player_sprite.set_position(remembered_player_x, remembered_player_y)
-    gamer()
+
+def update_stats_for_next_level():
+    global player_level, player_exp, player_sprite, remembered_player_x, remembered_player_y
+    player_exp = 0
+    update_exp_status_bar()
+    set_zombie_stats(player_level)
+    set_player_stats(player_level)
+    music.ba_ding.play()
+
+def clear_screen():
+    remember_player_position(player_sprite)
+    destroy_all()
+    effects.star_field.end_screen_effect()
+    ghast_exists = False
 
 def remember_player_position(player_sprite:Sprite):
     global remembered_player_x, remembered_player_y
@@ -401,7 +406,6 @@ def destroy_all():
 def show_game_lore(player_level):
     if player_level == 2:
         scene.set_background_image(assets.image("""lore_level_2_1"""))
-        
         game.show_long_text("Los primeros infectados eran lentos, ahora son cada vez más rápidos y letales.", DialogLayout.BOTTOM)
     elif player_level == 3:
         scene.set_background_image(assets.image("""lore_level_3_1"""))
@@ -514,8 +518,8 @@ def destroy_bullets():
     global bullet_list
     global player_sprite
     for b in bullet_list:
-        if b.sprite.x < LEFT_BOUNDARY - player_sprite.x or b.sprite.x > RIGHT_BOUNDARY + player_sprite.x or b.sprite.y > BOTTOM_BOUNDARY + player_sprite.y or b.sprite.y < TOP_BOUNDARY - player_sprite.y:
-            sprites.destroy(b.sprite)
+        if b.x < LEFT_BOUNDARY - player_sprite.x or b.x > RIGHT_BOUNDARY + player_sprite.x or b.y > BOTTOM_BOUNDARY + player_sprite.y or b.y < TOP_BOUNDARY - player_sprite.y:
+            sprites.destroy(b)
 
 def destroy_zombies():
     global zombie_list, player_sprite, player_exp, deleted_zombies_list, player_exp_punish, stat_zombies_escaped
@@ -540,7 +544,7 @@ def destroy_all_bullets():
     global bullet_list
     global player_sprite
     for b in bullet_list:
-        sprites.destroy(b.sprite)
+        sprites.destroy(b)
 
 def destroy_all_ghasts():
     global ghast_list, ghast_exists
@@ -560,35 +564,40 @@ def update_exp_status_bar():
     exp_status_bar.set_label("EXP: "+ player_exp + "/" + player_exp_required)
 
 def game_over():
-    global on_stats_screen
-    on_stats_screen = True
-    story.start_cutscene(stats_cutscene)
+    global on_end_screen
+    on_end_screen = True
+    story.start_cutscene(end_cutscene)
 
-def stats_cutscene():
-    stats_screen()
+def on_life_zero():
+    pass
+info.on_life_zero(on_life_zero)
+
+def end_cutscene():
+    clear_screen()
+    show_end_lore(player_level)
+    show_stats()
     game.over()
 
-def stats_screen():
-    global player_level, on_stats_screen
-    stat_missed_shots = stat_shots - stat_accurate_shots
-    stat_precission = (stat_accurate_shots / stat_shots) * 100 if stat_shots > 0 else 0
-    story.set_page_pause_length(0, 1000)
-    destroy_all()
-    effects.star_field.end_screen_effect()
-    if (player_level >= 11):
-        game.splash("Game Over", "You have reached the max level!")
-    else:
-        game.splash("Game Over", "You died")
-    if player_level == 11:
+def show_end_lore(level):
+    if (level+1 > player_win_level and info.life() > 0):
+        game.splash("Game Over", "¡Has logrado escapar!")
         story.print_dialog("¡Felicidades, Alex! Has alcanzado el refugio humano.", 80, 90, 50, 150)
         story.print_dialog("Gracias a tu ingenio, los supervivientes ahora tienen una oportunidad.", 80, 90, 50, 150)
         story.print_dialog("Con tu Micro:bit, comenzará la investigación para encontrar una cura.", 80, 90, 50, 150)
         story.print_dialog("El destino de la humanidad está en buenas manos.", 80, 90, 50, 150)
     else:
+        game.splash("Game Over", "Moriste")
         story.print_dialog("Alex ha caído en su lucha contra las hordas de zombis.", 80, 90, 50, 150)
         story.print_dialog("Aunque su esfuerzo fue valiente, los zombis han tomado el control.", 80, 90, 50, 150)
         story.print_dialog("El refugio humano sigue siendo un sueño distante...", 80, 90, 50, 150)
         story.print_dialog("¿Podrá la humanidad encontrar una nueva esperanza?", 80, 90, 50, 150)
+
+
+def show_stats():
+    stat_missed_shots = stat_shots - stat_accurate_shots
+    stat_precission = (stat_accurate_shots / stat_shots) * 100 if stat_shots > 0 else 0
+    story.set_page_pause_length(0, 1000)
+    
     story.print_dialog("Balas disparadas: " + str(stat_shots), 80, 90, 50, 150)
     story.print_dialog("Balas acertadas: " + str(stat_accurate_shots), 80, 90, 50, 150)
     story.print_dialog("Precisión: " + str(stat_precission) + "%", 80, 90, 50, 150)
@@ -597,6 +606,7 @@ def stats_screen():
     story.print_dialog("Daño infligido: " + str(stat_damage_dealt), 80, 90, 50, 150)
     story.print_dialog("Vidas ganadas: " + str(stat_lifes_won), 80, 90, 50, 150)
     story.print_dialog("Vidas perdidas: " + str(stat_lifes_lost), 80, 90, 50, 150)
+ 
 
 # Eventos
 def on_projectile_collision(bullet, zombie):
@@ -659,12 +669,6 @@ def on_enemy_life_zero(bar):
     bar.sprite_attached_to().destroy(effects.disintegrate)
     update_exp_status_bar()
 statusbars.on_zero(StatusBarKind.enemy_health, on_enemy_life_zero)
-
-
-def on_life_zero():
-    music.spooky.play()
-    game_over()
-info.on_life_zero(on_life_zero)
 
 def create_enemy():
     global player_level, ghast_exists, delay_min_ghast, delay_max_ghast
@@ -1261,11 +1265,7 @@ def create_bullet():
         . . . . . . . . . . . . . . . .
         . . . . . . . . . . . . . . . .
         """), SpriteKind.projectile)
-
-    bullet_id = bullet_list.length + 1
-    bullet = Bullet(bullet_sprite,bullet_id)
-    bullet_list.append(bullet)
-    
+    bullet_list.append(bullet_sprite)
     return bullet_sprite
 
 # Button A
@@ -1282,7 +1282,7 @@ def on_a_pressed():
     elif on_zombie_screen == True:
         story.cancel_current_cutscene()
         on_zombie_screen = False
-    elif on_stats_screen == True:
+    elif on_end_screen == True:
         story.clear_all_text()
 controller.A.on_event(ControllerButtonEvent.PRESSED, on_a_pressed)
 
