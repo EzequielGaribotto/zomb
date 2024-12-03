@@ -423,16 +423,16 @@ def show_game_lore(player_level):
         game.show_long_text("La infección avanza más rápido que cualquier cura posible.", DialogLayout.BOTTOM)
     elif player_level == 7:
         scene.set_background_image(assets.image("""lore_level_7_1"""))
-        game.show_long_text("Encontré un diario... alguien intentó detener esto, pero fracasó.", DialogLayout.BOTTOM)
+        game.show_long_text("Sobrevive. Lucha. Escapa. Repite.", DialogLayout.BOTTOM)
     elif player_level == 8:
         scene.set_background_image(assets.image("""lore_level_8_1"""))
         game.show_long_text("El Micro:bit interceptó una señal: 'Refugio bajo ataque, ayuda...'", DialogLayout.BOTTOM)
     elif player_level == 9:
         scene.set_background_image(assets.image("""lore_level_9_1"""))
-        game.show_long_text("El refugio está cerca, pero algo acecha en la oscuridad...", DialogLayout.BOTTOM)
+        game.show_long_text("Solo quedan los más fuertes. ¿Serás tú uno de ellos?", DialogLayout.BOTTOM)
     elif player_level == 10:
         scene.set_background_image(assets.image("""lore_level_10_1"""))
-        game.show_long_text("Todo apunta a esto: el refugio guarda un oscuro secreto.", DialogLayout.BOTTOM)
+        game.show_long_text("El fin no es el final... Es solo el comienzo de algo peor.", DialogLayout.BOTTOM)
     scene.set_background_image(assets.image("""cityscape"""))
 
 def set_player_stats(level: int):

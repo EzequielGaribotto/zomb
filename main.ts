@@ -440,16 +440,16 @@ function show_game_lore(player_level: number) {
         game.showLongText("La infección avanza más rápido que cualquier cura posible.", DialogLayout.Bottom)
     } else if (player_level == 7) {
         scene.setBackgroundImage(assets.image`lore_level_7_1`)
-        game.showLongText("Encontré un diario... alguien intentó detener esto, pero fracasó.", DialogLayout.Bottom)
+        game.showLongText("Sobrevive. Lucha. Escapa. Repite.", DialogLayout.Bottom)
     } else if (player_level == 8) {
         scene.setBackgroundImage(assets.image`lore_level_8_1`)
         game.showLongText("El Micro:bit interceptó una señal: 'Refugio bajo ataque, ayuda...'", DialogLayout.Bottom)
     } else if (player_level == 9) {
         scene.setBackgroundImage(assets.image`lore_level_9_1`)
-        game.showLongText("El refugio está cerca, pero algo acecha en la oscuridad...", DialogLayout.Bottom)
+        game.showLongText("Solo quedan los más fuertes. ¿Serás tú uno de ellos?", DialogLayout.Bottom)
     } else if (player_level == 10) {
         scene.setBackgroundImage(assets.image`lore_level_10_1`)
-        game.showLongText("Todo apunta a esto: el refugio guarda un oscuro secreto.", DialogLayout.Bottom)
+        game.showLongText("El fin no es el final... Es solo el comienzo de algo peor.", DialogLayout.Bottom)
     }
     
     scene.setBackgroundImage(assets.image`cityscape`)
