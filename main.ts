@@ -21,7 +21,7 @@ let deleted_zombies_list : Sprite[] = []
 let explosion_particle_list : Sprite[] = []
 //  Status bar Sprites
 let exp_status_bar : StatusBarSprite = null
-let zombie_statusbar : StatusBarSprite = null
+let zombie_status_bar : StatusBarSprite = null
 let ghast_status_bar : StatusBarSprite = null
 //  Text Sprites
 let title_sprite : TextSprite = null
@@ -108,8 +108,10 @@ namespace SpriteKind {
 }
 
 namespace StatusBarKind {
-    export const zombie_status_bar = StatusBarKind.create()
-    export const ghast_status_bar = StatusBarKind.create()
+    export const zombie_sb = SpriteKind.create()
+    export const ghast_sb = SpriteKind.create()
+    export const xp_sb = SpriteKind.create()
+    export const route_sb = SpriteKind.create()
 }
 
 //  main
@@ -343,7 +345,7 @@ function gamer() {
         destroy_zombies()
         destroy_bullets()
         if (player_exp < player_exp_required && info.life() > 0) {
-            create_enemy()
+            create_enemies()
         } else {
             if (info.life() == 0) {
                 music.spooky.play()
@@ -544,10 +546,7 @@ function destroy_zombies() {
 }
 
 function destroy_all_zombies() {
-    
-    for (let z of zombie_list) {
-        sprites.destroy(z)
-    }
+    sprites.destroyAllSpritesOfKind(SpriteKind.zombie)
 }
 
 function destroy_all_bullets() {
@@ -632,9 +631,9 @@ sprites.onOverlap(SpriteKind.projectile, SpriteKind.zombie, function on_projecti
     stat_damage_dealt += player_power
     animate_bullet_collision(bullet)
     play_custom_hit_sound()
-    let zombie_statusbar = statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, zombie)
-    if (zombie_statusbar) {
-        zombie_statusbar.value += -player_power
+    let zombie_status_bar = statusbars.getStatusBarAttachedTo(StatusBarKind.zombie_sb, zombie)
+    if (zombie_status_bar) {
+        zombie_status_bar.value += -player_power
     }
     
     if (zombie) {
@@ -655,7 +654,7 @@ sprites.onOverlap(SpriteKind.projectile, SpriteKind.ghast, function on_projectil
     stat_damage_dealt += player_power
     animate_bullet_collision(bullet)
     play_custom_hit_sound()
-    let ghast_statusbar = statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, ghast)
+    let ghast_statusbar = statusbars.getStatusBarAttachedTo(StatusBarKind.ghast_sb, ghast)
     if (ghast_statusbar) {
         ghast_statusbar.value += -player_power
     }
@@ -725,42 +724,57 @@ sprites.onOverlap(SpriteKind.player, SpriteKind.ghast, function on_player_collis
     player_iframes = 0
 })
 //  Eventos
-sprites.onOverlap(SpriteKind.explosion, SpriteKind.Enemy, function on_explosion_collision(explosion: Sprite, zombie: Sprite) {
+sprites.onOverlap(SpriteKind.explosion, SpriteKind.zombie, function on_explosion_collision_with_zombie(explosion: Sprite, zombie: Sprite) {
     
     stat_explosion_damage += explosion_power
     sprites.destroy(explosion)
-    statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, zombie).value += -explosion_power
+    statusbars.getStatusBarAttachedTo(StatusBarKind.zombie_sb, zombie).value += -explosion_power
 })
-sprites.onOverlap(SpriteKind.blood_explosion, SpriteKind.Enemy, function on_blood_explosion_collision(explosion: Sprite, zombie: Sprite) {
+sprites.onOverlap(SpriteKind.explosion, SpriteKind.ghast, function on_explosion_collision_with_ghast(explosion: Sprite, ghast: Sprite) {
+    
+    stat_explosion_damage += explosion_power
+    sprites.destroy(explosion)
+    statusbars.getStatusBarAttachedTo(StatusBarKind.ghast_sb, ghast).value += -explosion_power
+})
+sprites.onOverlap(SpriteKind.blood_explosion, SpriteKind.zombie, function on_blood_explosion_collision_with_zombie(explosion: Sprite, zombie: Sprite) {
     
     stat_blood_explosion_damage += blood_explosion_power
     sprites.destroy(explosion)
-    statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, zombie).value += -blood_explosion_power
+    statusbars.getStatusBarAttachedTo(StatusBarKind.zombie_sb, zombie).value += -blood_explosion_power
 })
-statusbars.onZero(StatusBarKind.EnemyHealth, function on_enemy_life_zero(bar: StatusBarSprite) {
+sprites.onOverlap(SpriteKind.blood_explosion, SpriteKind.ghast, function on_blood_explosion_collision_with_ghast(explosion: Sprite, ghast: Sprite) {
+    
+    stat_blood_explosion_damage += blood_explosion_power
+    sprites.destroy(explosion)
+    statusbars.getStatusBarAttachedTo(StatusBarKind.ghast_sb, ghast).value += -blood_explosion_power
+})
+statusbars.onZero(StatusBarKind.zombie_sb, function on_zombie_life_zero(bar: StatusBarSprite) {
     
     music.thump.play()
     let sprite = bar.spriteAttachedTo()
-    if (zombie_list.indexOf(sprite) >= 0) {
-        stat_zombies_killed += 1
-        player_exp += zombie_xp_reward
+    stat_zombies_killed += 1
+    player_exp += zombie_xp_reward
+    sprite.setVelocity(0, 0)
+    blood_explosion(sprite.x, sprite.y)
+    bar.spriteAttachedTo().destroy(effects.disintegrate)
+    update_exp_status_bar()
+})
+statusbars.onZero(StatusBarKind.ghast_sb, function on_ghast_life_zero(bar: StatusBarSprite) {
+    
+    music.thump.play()
+    let sprite = bar.spriteAttachedTo()
+    if (ghast_exists) {
+        stat_ghasts_killed += 1
+        player_exp += ghast_xp_reward
         sprite.setVelocity(0, 0)
-        blood_explosion(sprite.x, sprite.y)
-    } else if (ghast_exists) {
-        if (ghast_list.indexOf(sprite) >= 0) {
-            stat_ghasts_killed += 1
-            player_exp += ghast_xp_reward
-            sprite.setVelocity(0, 0)
-            ghast_exists = false
-            explosion(sprite.x, sprite.y)
-        }
-        
+        ghast_exists = false
+        explosion(sprite.x, sprite.y)
     }
     
     bar.spriteAttachedTo().destroy(effects.disintegrate)
     update_exp_status_bar()
 })
-function create_enemy() {
+function create_enemies() {
     let first_ghast: boolean;
     
     
@@ -821,10 +835,10 @@ function create_zombie() {
     animation.runImageAnimation(zombie_sprite, assets.animation`zombie_anim`, 100, true)
     zombie_sprite.setVelocity(-zombie_speed, 0)
     zombie_list.push(zombie_sprite)
-    zombie_statusbar = statusbars.create(16, 2, StatusBarKind.EnemyHealth)
-    zombie_statusbar.max = zombie_hp
-    zombie_statusbar.value = zombie_hp
-    zombie_statusbar.attachToSprite(zombie_sprite)
+    zombie_status_bar = statusbars.create(16, 2, StatusBarKind.zombie_sb)
+    zombie_status_bar.max = zombie_hp
+    zombie_status_bar.value = zombie_hp
+    zombie_status_bar.attachToSprite(zombie_sprite)
 }
 
 function create_ghast() {
@@ -835,7 +849,7 @@ function create_ghast() {
     ghast_sprite.setPosition(player_sprite.x + RIGHT_BOUNDARY, ypos_ghast_sprite)
     animation.runImageAnimation(ghast_sprite, assets.animation`ghast`, 150, true)
     ghast_list.push(ghast_sprite)
-    let ghast_statusbar = statusbars.create(24, 2, StatusBarKind.EnemyHealth)
+    let ghast_statusbar = statusbars.create(24, 2, StatusBarKind.ghast_sb)
     ghast_statusbar.max = ghast_hp
     ghast_statusbar.value = ghast_hp
     ghast_statusbar.attachToSprite(ghast_sprite)

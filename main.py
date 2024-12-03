@@ -24,7 +24,7 @@ explosion_particle_list:List[Sprite] = []
 
 # Status bar Sprites
 exp_status_bar:StatusBarSprite = None
-zombie_statusbar: StatusBarSprite = None
+zombie_status_bar: StatusBarSprite = None
 ghast_status_bar:StatusBarSprite = None
 
 # Text Sprites
@@ -125,11 +125,12 @@ class SpriteKind:
     explosion = SpriteKind.create()
     blood_explosion = SpriteKind.create()
 
-
 @namespace
 class StatusBarKind:
-    zombie_status_bar = StatusBarKind.create()
-    ghast_status_bar = StatusBarKind.create()
+    zombie_sb = SpriteKind.create()
+    ghast_sb = SpriteKind.create()
+    xp_sb = SpriteKind.create()
+    route_sb = SpriteKind.create()
 # main
 open_main_screen()
 
@@ -346,7 +347,7 @@ def gamer():
         destroy_zombies()
         destroy_bullets()
         if player_exp < player_exp_required and info.life() > 0:
-            create_enemy()
+            create_enemies()
         else:
             if (info.life() == 0):
                 music.spooky.play()
@@ -517,9 +518,7 @@ def destroy_zombies():
 
 
 def destroy_all_zombies():
-    global zombie_list
-    for z in zombie_list:
-        sprites.destroy(z)
+    sprites.destroy_all_sprites_of_kind(SpriteKind.zombie)
 
 def destroy_all_bullets():
     global bullet_list
@@ -596,8 +595,8 @@ def on_projectile_collision_with_zombie(bullet, zombie):
     stat_damage_dealt+=player_power
     animate_bullet_collision(bullet)
     play_custom_hit_sound()
-    zombie_statusbar = statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, zombie)
-    if (zombie_statusbar): zombie_statusbar.value += -player_power
+    zombie_status_bar = statusbars.get_status_bar_attached_to(StatusBarKind.zombie_sb, zombie)
+    if (zombie_status_bar): zombie_status_bar.value += -player_power
     if (zombie): zombie.set_velocity(-zombie_stun_speed, 0)
     orange = 4
     tint_sprite_time(zombie,orange,200)
@@ -613,7 +612,7 @@ def on_projectile_collision_with_ghast(bullet, ghast):
     stat_damage_dealt+=player_power
     animate_bullet_collision(bullet)
     play_custom_hit_sound()
-    ghast_statusbar = statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, ghast)
+    ghast_statusbar = statusbars.get_status_bar_attached_to(StatusBarKind.ghast_sb, ghast)
     if (ghast_statusbar): ghast_statusbar.value += -player_power
     if (ghast): ghast.set_velocity(-ghast_stun_speed, 0)
     blue = 8
@@ -677,41 +676,61 @@ def on_player_collision_with_ghast(player, ghast):
 sprites.on_overlap(SpriteKind.player, SpriteKind.ghast, on_player_collision_with_ghast)
 
 # Eventos
-def on_explosion_collision(explosion, zombie):
+def on_explosion_collision_with_zombie(explosion, zombie):
     global explosion_power, stat_explosion_damage
     stat_explosion_damage+=explosion_power
     sprites.destroy(explosion)
-    statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, zombie).value += -explosion_power
-sprites.on_overlap(SpriteKind.explosion,SpriteKind.enemy,on_explosion_collision)
+    statusbars.get_status_bar_attached_to(StatusBarKind.zombie_sb, zombie).value += -explosion_power
+sprites.on_overlap(SpriteKind.explosion,SpriteKind.zombie,on_explosion_collision_with_zombie)
 
-def on_blood_explosion_collision(explosion, zombie):
+def on_explosion_collision_with_ghast(explosion, ghast):
+    global explosion_power, stat_explosion_damage
+    stat_explosion_damage+=explosion_power
+    sprites.destroy(explosion)
+    statusbars.get_status_bar_attached_to(StatusBarKind.ghast_sb, ghast).value += -explosion_power
+sprites.on_overlap(SpriteKind.explosion,SpriteKind.ghast,on_explosion_collision_with_ghast)
+
+def on_blood_explosion_collision_with_zombie(explosion, zombie):
     global blood_explosion_power, stat_blood_explosion_damage
     stat_blood_explosion_damage+=blood_explosion_power
     sprites.destroy(explosion)
-    statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, zombie).value += -blood_explosion_power
-sprites.on_overlap(SpriteKind.blood_explosion,SpriteKind.enemy,on_blood_explosion_collision)
+    statusbars.get_status_bar_attached_to(StatusBarKind.zombie_sb, zombie).value += -blood_explosion_power
+sprites.on_overlap(SpriteKind.blood_explosion,SpriteKind.zombie,on_blood_explosion_collision_with_zombie)
 
-def on_enemy_life_zero(bar):
+def on_blood_explosion_collision_with_ghast(explosion, ghast):
+    global blood_explosion_power, stat_blood_explosion_damage
+    stat_blood_explosion_damage+=blood_explosion_power
+    sprites.destroy(explosion)
+    statusbars.get_status_bar_attached_to(StatusBarKind.ghast_sb, ghast).value += -blood_explosion_power
+sprites.on_overlap(SpriteKind.blood_explosion,SpriteKind.ghast,on_blood_explosion_collision_with_ghast)
+
+def on_zombie_life_zero(bar):
     global player_exp, zombie_xp_reward, stat_zombies_killed, ghast_xp_reward, stat_ghasts_killed, ghast_exists
     music.thump.play()
     sprite = bar.sprite_attached_to()
-    if sprite in zombie_list:
-        stat_zombies_killed+=1
-        player_exp += zombie_xp_reward
-        sprite.set_velocity(0, 0)
-        blood_explosion(sprite.x,sprite.y)
-    elif ghast_exists:
-        if sprite in ghast_list:
-            stat_ghasts_killed+=1
-            player_exp += ghast_xp_reward
-            sprite.set_velocity(0, 0)
-            ghast_exists = False
-            explosion(sprite.x, sprite.y)
+    stat_zombies_killed+=1
+    player_exp += zombie_xp_reward
+    sprite.set_velocity(0, 0)
+    blood_explosion(sprite.x,sprite.y)
     bar.sprite_attached_to().destroy(effects.disintegrate)
     update_exp_status_bar()
-statusbars.on_zero(StatusBarKind.enemy_health, on_enemy_life_zero)
+statusbars.on_zero(StatusBarKind.zombie_sb, on_zombie_life_zero)
 
-def create_enemy():
+def on_ghast_life_zero(bar):
+    global player_exp, zombie_xp_reward, stat_zombies_killed, ghast_xp_reward, stat_ghasts_killed, ghast_exists
+    music.thump.play()
+    sprite = bar.sprite_attached_to()
+    if ghast_exists:
+        stat_ghasts_killed+=1
+        player_exp += ghast_xp_reward
+        sprite.set_velocity(0, 0)
+        ghast_exists = False
+        explosion(sprite.x, sprite.y)
+    bar.sprite_attached_to().destroy(effects.disintegrate)
+    update_exp_status_bar()
+statusbars.on_zero(StatusBarKind.ghast_sb, on_ghast_life_zero)
+
+def create_enemies():
     global player_level, ghast_exists, delay_min_ghast, delay_max_ghast
     global ghast_timer, zombie_timer
     current_time = game.runtime()
@@ -755,7 +774,7 @@ def create_player():
     scroller.set_camera_scrolling_multipliers(1, 0)
 
 def create_zombie():
-    global zombie_hp, zombie_sprite, ypos_zombie_sprite, zombie_statusbar
+    global zombie_hp, zombie_sprite, ypos_zombie_sprite, zombie_status_bar
     ypos_zombie_sprite = randint(20, 110)
     zombie_sprite = sprites.create(assets.image("""zombie_enemy"""), SpriteKind.zombie)
     zombie_sprite.set_position(player_sprite.x + RIGHT_BOUNDARY, ypos_zombie_sprite)
@@ -766,10 +785,10 @@ def create_zombie():
         True)
     zombie_sprite.set_velocity(-zombie_speed, 0)
     zombie_list.push(zombie_sprite)
-    zombie_statusbar = statusbars.create(16, 2, StatusBarKind.enemy_health)
-    zombie_statusbar.max = zombie_hp
-    zombie_statusbar.value = zombie_hp
-    zombie_statusbar.attachToSprite(zombie_sprite)
+    zombie_status_bar = statusbars.create(16, 2, StatusBarKind.zombie_sb)
+    zombie_status_bar.max = zombie_hp
+    zombie_status_bar.value = zombie_hp
+    zombie_status_bar.attachToSprite(zombie_sprite)
 
 def create_ghast():
     global ghast_sprite, ghast_status_bar, ghast_speed, ypos_ghast_sprite, ghast_hp, ghast_exists
@@ -784,7 +803,7 @@ def create_ghast():
         True)
     
     ghast_list.push(ghast_sprite)
-    ghast_statusbar = statusbars.create(24, 2, StatusBarKind.enemy_health)
+    ghast_statusbar = statusbars.create(24, 2, StatusBarKind.ghast_sb)
     ghast_statusbar.max = ghast_hp
     ghast_statusbar.value = ghast_hp
     ghast_statusbar.attach_to_sprite(ghast_sprite)
