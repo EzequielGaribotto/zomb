@@ -1,4 +1,13 @@
-//  Main
+//  CONSTANTS
+//  Boundaries
+let RIGHT_BOUNDARY = 160
+let LEFT_BOUNDARY = 0
+let BOTTOM_BOUNDARY = 120
+let TOP_BOUNDARY = 0
+//  Game
+let PLAYER_START_LEVEL = 10
+let PLAYER_WIN_LEVEL = 10
+let GHAST_APPEARANCE_LEVEL = 3
 //  Sprites
 let player_sprite : Sprite = null
 let zombie_sprite : Sprite = null
@@ -20,8 +29,8 @@ let text_sprite : TextSprite = null
 let skip_lore_sprite : TextSprite = null
 let skip_stats_sprite : TextSprite = null
 //  Enemies stats
-let delay_min_enemies = 0
-let delay_max_enemies = 0
+let delay_min_zombie = 0
+let delay_max_zombie = 0
 let delay_min_ghast = 0
 let delay_max_ghast = 0
 //  Zombie Stats
@@ -34,6 +43,13 @@ let ypos_bullet = 0
 let xpos_bullet = 0
 let ypos_zombie_sprite = 0
 let zombie_xp_reward = 0
+//  Ghast stats
+let ghast_speed = 0
+let ghast_xp_reward = 0
+let ghast_hp = 0
+let ypos_ghast_sprite = 0
+let ghast_stun_speed = 0
+let ghast_stun_duration = 0
 //  Explosion stats
 let explosion_power = 0
 let explosion_particle_amt = 0
@@ -53,6 +69,7 @@ let player_hp = 0
 let player_power = 0
 let player_speed = 0
 let player_exp_punish = 0
+let player_iframes = 0
 //  Booleans
 let on_menu = true
 let on_zombie_screen = false
@@ -60,16 +77,6 @@ let on_lore_screen = false
 let on_end_screen = false
 let ghast_exists = false
 let first_ghast = true
-//  CONSTANTS
-//  Boundaries
-let RIGHT_BOUNDARY = 160
-let LEFT_BOUNDARY = 0
-let BOTTOM_BOUNDARY = 120
-let TOP_BOUNDARY = 0
-//  Game
-let PLAYER_START_LEVEL = 1
-let PLAYER_WIN_LEVEL = 10
-let GHAST_APPEARANCE_LEVEL = 3
 //  Stats to Display
 let stat_shots = 0
 let stat_missed_shots = 0
@@ -84,11 +91,6 @@ let stat_ghasts_killed = 0
 let stat_damage_dealt = 0
 let stat_lifes_won = 0
 let stat_lifes_lost = 0
-//  Ghast stats
-let ghast_speed = 0
-let ghast_xp_reward = 0
-let ghast_hp = 0
-let ypos_ghast_sprite = 0
 //  Timers
 let zombie_timer = game.runtime()
 let ghast_timer = game.runtime()
@@ -98,10 +100,16 @@ let remembered_player_y = 60
 //  Classes
 namespace SpriteKind {
     export const projectile = SpriteKind.create()
-    export const enemy = SpriteKind.create()
+    export const zombie = SpriteKind.create()
+    export const ghast = SpriteKind.create()
     export const player = SpriteKind.create()
     export const explosion = SpriteKind.create()
     export const blood_explosion = SpriteKind.create()
+}
+
+namespace StatusBarKind {
+    export const zombie_status_bar = StatusBarKind.create()
+    export const ghast_status_bar = StatusBarKind.create()
 }
 
 //  main
@@ -434,7 +442,7 @@ function show_game_lore(player_level: number) {
         game.showLongText("Alex recuerda su hogar, pero ya no queda nada de él.", DialogLayout.Bottom)
     } else if (player_level == 5) {
         scene.setBackgroundImage(assets.image`lore_level_5_1`)
-        game.showLongText("Un rumor dice que un refugio seguro existe al este... ¿será cierto?", DialogLayout.Bottom)
+        game.showLongText("Un rumor dice que un refugio seguro existe al este... ¿será cierto?", DialogLayout.Top)
     } else if (player_level == 6) {
         scene.setBackgroundImage(assets.image`lore_level_6_1`)
         game.showLongText("La infección avanza más rápido que cualquier cura posible.", DialogLayout.Bottom)
@@ -484,8 +492,8 @@ function set_zombie_stats(level: number) {
     zombie_hp = 100 + (level - 1) * 50
     zombie_power = 50 + (level - 1) * 10
     zombie_speed = 35 + (level - 1) * 5
-    delay_min_enemies = Math.max(1000 - (level - 1) * 100, 100)
-    delay_max_enemies = Math.max(1500 - (level - 1) * 100, 600)
+    delay_min_zombie = Math.max(1500 - (level - 1) * 100, 400)
+    delay_max_zombie = Math.max(2000 - (level - 1) * 100, 750)
     zombie_xp_reward = 50
     zombie_stun_duration = Math.max(2000 - (level - 1) * 200, 200)
     zombie_stun_speed = 10 + (level - 1) * 2
@@ -493,11 +501,14 @@ function set_zombie_stats(level: number) {
 
 function set_ghast_stats(level: number) {
     
+    
+    ghast_hp = 800 + (level - 3) * 75
     ghast_speed = 50 + (level - 3) * 5
-    ghast_xp_reward = 50
-    ghast_hp = 1000 + (level - 3) * 75
-    delay_min_ghast = 10000 - (level - 3) * 1000
-    delay_max_ghast = 15000 - (level - 3) * 500
+    delay_min_ghast = Math.max(10000 - (level - 3) * 250, 800)
+    delay_max_ghast = Math.max(15000 - (level - 3) * 100, 1000)
+    ghast_xp_reward = 100
+    ghast_stun_duration = Math.max(2000 - (level - 1) * 200, 200)
+    ghast_stun_speed = 10 + (level - 1) * 2
 }
 
 function destroy_bullets() {
@@ -615,7 +626,7 @@ function show_stats() {
 }
 
 //  Eventos
-sprites.onOverlap(SpriteKind.projectile, SpriteKind.enemy, function on_projectile_collision(bullet: Sprite, zombie: Sprite) {
+sprites.onOverlap(SpriteKind.projectile, SpriteKind.zombie, function on_projectile_collision_with_zombie(bullet: Sprite, zombie: Sprite) {
     
     stat_accurate_shots += 1
     stat_damage_dealt += player_power
@@ -636,26 +647,87 @@ sprites.onOverlap(SpriteKind.projectile, SpriteKind.enemy, function on_projectil
     }
     
 })
-sprites.onOverlap(SpriteKind.player, SpriteKind.enemy, function on_player_collision_with_enemy(player: Sprite, enemy: Sprite) {
+sprites.onOverlap(SpriteKind.projectile, SpriteKind.ghast, function on_projectile_collision_with_ghast(bullet: Sprite, ghast: Sprite) {
     
+    stat_accurate_shots += 1
+    stat_damage_dealt += player_power
+    animate_bullet_collision(bullet)
+    play_custom_hit_sound()
+    let ghast_statusbar = statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, ghast)
+    if (ghast_statusbar) {
+        ghast_statusbar.value += -player_power
+    }
+    
+    if (ghast) {
+        ghast.setVelocity(-ghast_stun_speed, 0)
+    }
+    
+    pause(ghast_stun_duration)
+    if (ghast) {
+        ghast.setVelocity(-zombie_speed, 0)
+    }
+    
+})
+function blink_sprite(sprite: Sprite, original_image: Image, blink_color: number, duration: number, interval: number) {
+    let tinted_image: Image;
+    let end_time = game.runtime() + duration
+    while (game.runtime() < end_time) {
+        tinted_image = original_image.clone()
+        for (let x = 0; x < tinted_image.width; x++) {
+            for (let y = 0; y < tinted_image.height; y++) {
+                if (tinted_image.getPixel(x, y) != 0) {
+                    tinted_image.setPixel(x, y, blink_color)
+                }
+                
+            }
+        }
+        sprite.setImage(tinted_image)
+        pause(interval)
+        sprite.setImage(original_image)
+        pause(interval)
+    }
+}
+
+sprites.onOverlap(SpriteKind.player, SpriteKind.zombie, function on_player_collision_with_zombie(player: Sprite, zombie: Sprite) {
+    
+    if (player_iframes > 0) {
+        return
+    }
+    
+    player_iframes = 1000
     music.zapped.play()
     info.changeLifeBy(-1)
     stat_lifes_lost += 1
-    if (ghast_list.indexOf(enemy) >= 0) {
-        ghast_exists = false
+    scene.cameraShake(4, 500)
+    blink_sprite(player, player.image.clone(), 1, player_iframes, 100)
+    pause(player_iframes)
+    player_iframes = 0
+})
+sprites.onOverlap(SpriteKind.player, SpriteKind.ghast, function on_player_collision_with_ghast(player: Sprite, ghast: Sprite) {
+    
+    if (player_iframes > 0) {
+        return
     }
     
-    enemy.destroy()
-    scene.cameraShake(4, 500)
+    player_iframes = 1000
+    music.zapped.play()
+    info.changeLifeBy(-1)
+    stat_lifes_lost += 1
+    ghast_exists = false
+    ghast.destroy()
+    scene.cameraShake(7, 500)
+    blink_sprite(player, player.image.clone(), 1, player_iframes, 100)
+    pause(player_iframes)
+    player_iframes = 0
 })
 //  Eventos
-sprites.onOverlap(SpriteKind.explosion, SpriteKind.enemy, function on_explosion_collision(explosion: Sprite, zombie: Sprite) {
+sprites.onOverlap(SpriteKind.explosion, SpriteKind.Enemy, function on_explosion_collision(explosion: Sprite, zombie: Sprite) {
     
     stat_explosion_damage += explosion_power
     sprites.destroy(explosion)
     statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, zombie).value += -explosion_power
 })
-sprites.onOverlap(SpriteKind.blood_explosion, SpriteKind.enemy, function on_blood_explosion_collision(explosion: Sprite, zombie: Sprite) {
+sprites.onOverlap(SpriteKind.blood_explosion, SpriteKind.Enemy, function on_blood_explosion_collision(explosion: Sprite, zombie: Sprite) {
     
     stat_blood_explosion_damage += blood_explosion_power
     sprites.destroy(explosion)
@@ -689,7 +761,7 @@ function create_enemy() {
     
     
     let current_time = game.runtime()
-    if (current_time - zombie_timer > randint(delay_min_enemies, delay_max_enemies)) {
+    if (current_time - zombie_timer > randint(delay_min_zombie, delay_max_zombie)) {
         create_zombie()
         zombie_timer = current_time
     }
@@ -740,7 +812,7 @@ function create_player() {
 function create_zombie() {
     
     ypos_zombie_sprite = randint(20, 110)
-    zombie_sprite = sprites.create(assets.image`zombie_enemy`, SpriteKind.enemy)
+    zombie_sprite = sprites.create(assets.image`zombie_enemy`, SpriteKind.zombie)
     zombie_sprite.setPosition(player_sprite.x + RIGHT_BOUNDARY, ypos_zombie_sprite)
     animation.runImageAnimation(zombie_sprite, assets.animation`zombie_anim`, 100, true)
     zombie_sprite.setVelocity(-zombie_speed, 0)
@@ -755,7 +827,7 @@ function create_ghast() {
     
     ghast_exists = true
     ypos_ghast_sprite = randint(20, 110)
-    ghast_sprite = sprites.create(assets.image`ghast_i`, SpriteKind.enemy)
+    ghast_sprite = sprites.create(assets.image`ghast_i`, SpriteKind.ghast)
     ghast_sprite.setPosition(player_sprite.x + RIGHT_BOUNDARY, ypos_ghast_sprite)
     animation.runImageAnimation(ghast_sprite, assets.animation`ghast`, 150, true)
     ghast_list.push(ghast_sprite)
@@ -1413,5 +1485,20 @@ function blood_explosion_sound() {
     music.playTone(800, BeatFraction.Eighth)
     music.playTone(1000, BeatFraction.Eighth)
     music.playTone(1200, BeatFraction.Eighth)
+}
+
+function tint_sprite(sprite: Sprite, tint_color: number) {
+    let color2: number;
+    let original_image = sprite.image.clone()
+    for (let x = 0; x < original_image.width; x++) {
+        for (let y = 0; y < original_image.height; y++) {
+            color2 = original_image.getPixel(x, y)
+            if (color2 != 0) {
+                original_image.setPixel(x, y, tint_color)
+            }
+            
+        }
+    }
+    sprite.setImage(original_image)
 }
 

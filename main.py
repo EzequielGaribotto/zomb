@@ -1,4 +1,15 @@
-# Main
+# CONSTANTS
+# Boundaries
+RIGHT_BOUNDARY = 160
+LEFT_BOUNDARY = 0
+BOTTOM_BOUNDARY = 120
+TOP_BOUNDARY = 0
+
+# Game
+PLAYER_START_LEVEL = 10
+PLAYER_WIN_LEVEL = 10
+GHAST_APPEARANCE_LEVEL = 3
+
 # Sprites
 player_sprite: Sprite = None
 zombie_sprite: Sprite = None
@@ -23,8 +34,8 @@ skip_lore_sprite: TextSprite = None
 skip_stats_sprite: TextSprite = None
 
 # Enemies stats
-delay_min_enemies = 0
-delay_max_enemies = 0
+delay_min_zombie = 0
+delay_max_zombie = 0
 
 delay_min_ghast = 0
 delay_max_ghast = 0
@@ -39,6 +50,15 @@ ypos_bullet = 0
 xpos_bullet = 0
 ypos_zombie_sprite = 0
 zombie_xp_reward = 0
+
+# Ghast stats
+ghast_speed = 0
+ghast_xp_reward = 0
+ghast_hp = 0
+ypos_ghast_sprite = 0
+ghast_stun_speed = 0
+ghast_stun_duration = 0
+
 
 # Explosion stats
 explosion_power = 0
@@ -61,6 +81,8 @@ player_hp = 0
 player_power = 0
 player_speed = 0
 player_exp_punish = 0
+player_iframes = 0
+
 # Booleans
 on_menu = True
 on_zombie_screen = False
@@ -68,18 +90,6 @@ on_lore_screen = False
 on_end_screen = False
 ghast_exists = False
 first_ghast = True
-
-# CONSTANTS
-# Boundaries
-RIGHT_BOUNDARY = 160
-LEFT_BOUNDARY = 0
-BOTTOM_BOUNDARY = 120
-TOP_BOUNDARY = 0
-
-# Game
-PLAYER_START_LEVEL = 1
-PLAYER_WIN_LEVEL = 10
-GHAST_APPEARANCE_LEVEL = 3
 
 # Stats to Display
 stat_shots = 0
@@ -97,12 +107,6 @@ stat_damage_dealt = 0
 stat_lifes_won = 0
 stat_lifes_lost = 0
 
-# Ghast stats
-ghast_speed = 0
-ghast_xp_reward = 0
-ghast_hp = 0
-ypos_ghast_sprite = 0
-
 # Timers
 zombie_timer = game.runtime()
 ghast_timer = game.runtime()
@@ -115,11 +119,17 @@ remembered_player_y = 60
 @namespace
 class SpriteKind:
     projectile = SpriteKind.create()
-    enemy = SpriteKind.create()
+    zombie = SpriteKind.create()
+    ghast = SpriteKind.create()
     player = SpriteKind.create()
     explosion = SpriteKind.create()
     blood_explosion = SpriteKind.create()
 
+
+@namespace
+class StatusBarKind:
+    zombie_status_bar = StatusBarKind.create()
+    ghast_status_bar = StatusBarKind.create()
 # main
 open_main_screen()
 
@@ -417,7 +427,7 @@ def show_game_lore(player_level):
         game.show_long_text("Alex recuerda su hogar, pero ya no queda nada de él.", DialogLayout.BOTTOM)
     elif player_level == 5:
         scene.set_background_image(assets.image("""lore_level_5_1"""))
-        game.show_long_text("Un rumor dice que un refugio seguro existe al este... ¿será cierto?", DialogLayout.BOTTOM)
+        game.show_long_text("Un rumor dice que un refugio seguro existe al este... ¿será cierto?", DialogLayout.TOP)
     elif player_level == 6:
         scene.set_background_image(assets.image("""lore_level_6_1"""))
         game.show_long_text("La infección avanza más rápido que cualquier cura posible.", DialogLayout.BOTTOM)
@@ -461,14 +471,14 @@ def set_player_stats(level: int):
 
 
 def set_zombie_stats(level: int):
-    global zombie_hp, zombie_power, zombie_speed, delay_min_enemies, delay_max_enemies
+    global zombie_hp, zombie_power, zombie_speed, delay_min_zombie, delay_max_zombie
     global zombie_xp_reward, zombie_stun_speed, zombie_stun_duration
 
     zombie_hp = 100 + (level - 1) * 50
     zombie_power = 50 + (level - 1) * 10
     zombie_speed = 35 + (level - 1) * 5
-    delay_min_enemies = max(1000 - (level - 1) * 100, 100)
-    delay_max_enemies = max(1500 - (level - 1) * 100, 600)
+    delay_min_zombie = max(1500 - (level - 1) * 100, 400)
+    delay_max_zombie = max(2000 - (level - 1) * 100, 750)
     zombie_xp_reward = 50
     zombie_stun_duration = max(2000 - (level - 1) * 200, 200)
     zombie_stun_speed = 10 + (level - 1) * 2
@@ -476,13 +486,14 @@ def set_zombie_stats(level: int):
 
 def set_ghast_stats(level: int):
     global ghast_speed, ghast_xp_reward, ghast_hp, delay_min_ghast, delay_max_ghast
-
+    global ghast_stun_speed, ghast_stun_duration
+    ghast_hp = 800 + (level - 3) * 75
     ghast_speed = 50 + (level - 3) * 5
-    ghast_xp_reward = 50
-    ghast_hp = 1000 + (level - 3) * 75
-    delay_min_ghast = 10000 - (level - 3) * 1000
-    delay_max_ghast = 15000 - (level - 3) * 500
-
+    delay_min_ghast = max(10000 - (level - 3) * 250, 800)
+    delay_max_ghast = max(15000 - (level - 3) * 100, 1000)
+    ghast_xp_reward = 100
+    ghast_stun_duration = max(2000 - (level - 1) * 200, 200)
+    ghast_stun_speed = 10 + (level - 1) * 2
 
 def destroy_bullets():
     global bullet_list
@@ -579,8 +590,8 @@ def show_stats():
  
 
 # Eventos
-def on_projectile_collision(bullet, zombie):
-    global player_power, zombie_hp, player_exp, zombie_xp_reward, zombie_stun_speed, zombie_stun_duration, stat_accurate_shots, stat_damage_dealt
+def on_projectile_collision_with_zombie(bullet, zombie):
+    global player_power, player_exp, zombie_xp_reward, zombie_stun_speed, zombie_stun_duration, stat_accurate_shots, stat_damage_dealt
     stat_accurate_shots+=1
     stat_damage_dealt+=player_power
     animate_bullet_collision(bullet)
@@ -590,18 +601,75 @@ def on_projectile_collision(bullet, zombie):
     if (zombie): zombie.set_velocity(-zombie_stun_speed, 0)
     pause(zombie_stun_duration)
     if (zombie): zombie.set_velocity(-zombie_speed, 0)
-sprites.on_overlap(SpriteKind.projectile,SpriteKind.enemy,on_projectile_collision)
+sprites.on_overlap(SpriteKind.projectile,SpriteKind.zombie,on_projectile_collision_with_zombie)
 
-def on_player_collision_with_enemy(player, enemy):
-    global zombie_power, player_hp, stat_lifes_lost, ghast_exists
+
+def on_projectile_collision_with_ghast(bullet, ghast):
+    global player_power, player_exp, ghast_xp_reward, ghast_stun_speed, ghast_stun_duration, stat_accurate_shots, stat_damage_dealt
+    stat_accurate_shots+=1
+    stat_damage_dealt+=player_power
+    animate_bullet_collision(bullet)
+    play_custom_hit_sound()
+    ghast_statusbar = statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, ghast)
+    if (ghast_statusbar): ghast_statusbar.value += -player_power
+    if (ghast): ghast.set_velocity(-ghast_stun_speed, 0)
+    pause(ghast_stun_duration)
+    if (ghast): ghast.set_velocity(-zombie_speed, 0)
+sprites.on_overlap(SpriteKind.projectile,SpriteKind.ghast,on_projectile_collision_with_ghast)
+
+
+def blink_sprite(sprite: Sprite, original_image:Image, blink_color: int, duration: int, interval: int):
+    end_time = game.runtime() + duration
+    while game.runtime() < end_time:
+        tinted_image = original_image.clone()
+        for x in range(tinted_image.width):
+            for y in range(tinted_image.height):
+                if tinted_image.get_pixel(x, y) != 0:
+                    tinted_image.set_pixel(x, y, blink_color)
+        sprite.set_image(tinted_image)
+        pause(interval)
+        
+        sprite.set_image(original_image)
+        pause(interval)
+
+def on_player_collision_with_zombie(player, zombie):
+    global player_iframes, player_hp, stat_lifes_lost
+    if player_iframes > 0:
+        return
+    
+    player_iframes = 1000 
     music.zapped.play()
     info.change_life_by(-1)
-    stat_lifes_lost+=1
-    if (enemy in ghast_list):
-        ghast_exists = False
-    enemy.destroy()
+    stat_lifes_lost += 1
     scene.camera_shake(4, 500)
-sprites.on_overlap(SpriteKind.player,SpriteKind.enemy,on_player_collision_with_enemy)
+
+    blink_sprite(player, player.image.clone(), 1, player_iframes, 100)
+    
+    pause(player_iframes)
+    player_iframes = 0
+
+sprites.on_overlap(SpriteKind.player, SpriteKind.zombie, on_player_collision_with_zombie)
+
+
+def on_player_collision_with_ghast(player, ghast):
+    global player_iframes, player_hp, stat_lifes_lost, ghast_exists
+    if player_iframes > 0:
+        return
+    
+    player_iframes = 1000
+    music.zapped.play()
+    info.change_life_by(-1)
+    stat_lifes_lost += 1
+    ghast_exists = False
+    ghast.destroy()
+    scene.camera_shake(7, 500)
+
+    blink_sprite(player, player.image.clone(), 1, player_iframes, 100)
+    
+    pause(player_iframes)
+    player_iframes = 0
+
+sprites.on_overlap(SpriteKind.player, SpriteKind.ghast, on_player_collision_with_ghast)
 
 # Eventos
 def on_explosion_collision(explosion, zombie):
@@ -616,7 +684,6 @@ def on_blood_explosion_collision(explosion, zombie):
     stat_blood_explosion_damage+=blood_explosion_power
     sprites.destroy(explosion)
     statusbars.get_status_bar_attached_to(StatusBarKind.enemy_health, zombie).value += -blood_explosion_power
-
 sprites.on_overlap(SpriteKind.blood_explosion,SpriteKind.enemy,on_blood_explosion_collision)
 
 def on_enemy_life_zero(bar):
@@ -635,7 +702,6 @@ def on_enemy_life_zero(bar):
             sprite.set_velocity(0, 0)
             ghast_exists = False
             explosion(sprite.x, sprite.y)
-
     bar.sprite_attached_to().destroy(effects.disintegrate)
     update_exp_status_bar()
 statusbars.on_zero(StatusBarKind.enemy_health, on_enemy_life_zero)
@@ -644,7 +710,7 @@ def create_enemy():
     global player_level, ghast_exists, delay_min_ghast, delay_max_ghast
     global ghast_timer, zombie_timer
     current_time = game.runtime()
-    if (current_time - zombie_timer > randint(delay_min_enemies, delay_max_enemies)):
+    if (current_time - zombie_timer > randint(delay_min_zombie, delay_max_zombie)):
         create_zombie()
         zombie_timer = current_time
     if (player_level >= GHAST_APPEARANCE_LEVEL and not ghast_exists):
@@ -686,7 +752,7 @@ def create_player():
 def create_zombie():
     global zombie_hp, zombie_sprite, ypos_zombie_sprite, zombie_statusbar
     ypos_zombie_sprite = randint(20, 110)
-    zombie_sprite = sprites.create(assets.image("""zombie_enemy"""), SpriteKind.enemy)
+    zombie_sprite = sprites.create(assets.image("""zombie_enemy"""), SpriteKind.zombie)
     zombie_sprite.set_position(player_sprite.x + RIGHT_BOUNDARY, ypos_zombie_sprite)
 
     animation.run_image_animation(zombie_sprite,
@@ -704,7 +770,7 @@ def create_ghast():
     global ghast_sprite, ghast_status_bar, ghast_speed, ypos_ghast_sprite, ghast_hp, ghast_exists
     ghast_exists = True
     ypos_ghast_sprite = randint(20, 110)
-    ghast_sprite = sprites.create(assets.image("""ghast_i"""), SpriteKind.enemy)
+    ghast_sprite = sprites.create(assets.image("""ghast_i"""), SpriteKind.ghast)
     ghast_sprite.set_position(player_sprite.x + RIGHT_BOUNDARY, ypos_ghast_sprite)
     
     animation.run_image_animation(ghast_sprite,
@@ -1407,3 +1473,14 @@ def blood_explosion_sound():
     music.play_tone(800, BeatFraction.EIGHTH)
     music.play_tone(1000, BeatFraction.EIGHTH)
     music.play_tone(1200, BeatFraction.EIGHTH)
+
+def tint_sprite(sprite: Sprite, tint_color: int):
+    original_image = sprite.image.clone()
+    for x in range(original_image.width):
+        for y in range(original_image.height):
+            color2 = original_image.get_pixel(x, y)
+            if color2 != 0: 
+                original_image.set_pixel(x, y, tint_color)
+    sprite.set_image(original_image)
+
+
