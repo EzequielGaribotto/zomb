@@ -58,12 +58,18 @@ let on_menu = true
 let on_zombie_screen = false
 let on_lore_screen = false
 let on_end_screen = false
+let ghast_exists = false
+let first_ghast = true
 //  CONSTANTS
 //  Boundaries
 let RIGHT_BOUNDARY = 160
 let LEFT_BOUNDARY = 0
 let BOTTOM_BOUNDARY = 120
 let TOP_BOUNDARY = 0
+//  Game
+let PLAYER_START_LEVEL = 1
+let PLAYER_WIN_LEVEL = 10
+let GHAST_APPEARANCE_LEVEL = 3
 //  Stats to Display
 let stat_shots = 0
 let stat_missed_shots = 0
@@ -83,16 +89,12 @@ let ghast_speed = 0
 let ghast_xp_reward = 0
 let ghast_hp = 0
 let ypos_ghast_sprite = 0
-let ghast_exists = false
 //  Timers
 let zombie_timer = game.runtime()
 let ghast_timer = game.runtime()
 let footstep_timer = game.runtime()
 let remembered_player_x = 20
 let remembered_player_y = 60
-//  Player level
-let player_start_level = 1
-let player_win_level = 10
 //  Classes
 namespace SpriteKind {
     export const projectile = SpriteKind.create()
@@ -298,7 +300,7 @@ function initialize_game_data() {
     on_zombie_screen = true
     on_menu = false
     on_lore_screen = false
-    player_level = player_start_level
+    player_level = PLAYER_START_LEVEL
     create_player()
     story.spriteSayText(player_sprite, "ostras pedrin")
     sprites.destroy(skip_lore_sprite)
@@ -340,7 +342,7 @@ function gamer() {
                 return
             }
             
-            if (player_level + 1 > player_win_level) {
+            if (player_level + 1 > PLAYER_WIN_LEVEL) {
                 //  Caso base 1 - Alex
                 music.powerUp.play()
                 return
@@ -582,7 +584,7 @@ info.onLifeZero(function on_life_zero() {
     
 })
 function show_end_lore(level: number) {
-    if (level + 1 > player_win_level && info.life() > 0) {
+    if (level + 1 > PLAYER_WIN_LEVEL && info.life() > 0) {
         game.splash("Game Over", "¡Has logrado escapar!")
         story.printDialog("¡Felicidades, Alex! Has alcanzado el refugio humano.", 80, 90, 50, 150)
         story.printDialog("Gracias a tu ingenio, los supervivientes ahora tienen una oportunidad.", 80, 90, 50, 150)
@@ -683,6 +685,7 @@ statusbars.onZero(StatusBarKind.EnemyHealth, function on_enemy_life_zero(bar: St
     update_exp_status_bar()
 })
 function create_enemy() {
+    let first_ghast: boolean;
     
     
     let current_time = game.runtime()
@@ -691,10 +694,16 @@ function create_enemy() {
         zombie_timer = current_time
     }
     
-    if (player_level >= 1 && !ghast_exists) {
+    if (player_level >= GHAST_APPEARANCE_LEVEL && !ghast_exists) {
         if (current_time - ghast_timer > randint(delay_min_ghast, delay_max_ghast)) {
             create_ghast()
             ghast_timer = current_time
+        }
+        
+        if (first_ghast == true) {
+            create_ghast()
+            ghast_timer = current_time
+            first_ghast = false
         }
         
     }

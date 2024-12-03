@@ -66,6 +66,8 @@ on_menu = True
 on_zombie_screen = False
 on_lore_screen = False
 on_end_screen = False
+ghast_exists = False
+first_ghast = True
 
 # CONSTANTS
 # Boundaries
@@ -74,6 +76,10 @@ LEFT_BOUNDARY = 0
 BOTTOM_BOUNDARY = 120
 TOP_BOUNDARY = 0
 
+# Game
+PLAYER_START_LEVEL = 1
+PLAYER_WIN_LEVEL = 10
+GHAST_APPEARANCE_LEVEL = 3
 
 # Stats to Display
 stat_shots = 0
@@ -96,7 +102,6 @@ ghast_speed = 0
 ghast_xp_reward = 0
 ghast_hp = 0
 ypos_ghast_sprite = 0
-ghast_exists = False
 
 # Timers
 zombie_timer = game.runtime()
@@ -105,11 +110,6 @@ footstep_timer = game.runtime()
 
 remembered_player_x = 20
 remembered_player_y = 60
-
-# Player level
-player_start_level = 1
-player_win_level = 10
-
 
 # Classes
 @namespace
@@ -313,11 +313,11 @@ def initialize_game_data():
     scene.set_background_image(assets.image("""
             cityscape
         """))
-    global on_zombie_screen, on_menu, ypos_zombie_sprite, player_level, on_lore_screen, skip_lore_sprite, exp_status_bar, player_exp, player_exp_required, player_start_level
+    global on_zombie_screen, on_menu, ypos_zombie_sprite, player_level, on_lore_screen, skip_lore_sprite, exp_status_bar, player_exp, player_exp_required, PLAYER_START_LEVEL
     on_zombie_screen = True
     on_menu = False
     on_lore_screen = False
-    player_level = player_start_level
+    player_level = PLAYER_START_LEVEL
     create_player()
     story.sprite_say_text(player_sprite, "ostras pedrin")
     sprites.destroy(skip_lore_sprite)
@@ -341,7 +341,7 @@ def gamer():
             if (info.life() == 0):
                 music.spooky.play()
                 return
-            if (player_level+1 > player_win_level): # Caso base 1 - Alex
+            if (player_level+1 > PLAYER_WIN_LEVEL): # Caso base 1 - Alex
                 music.power_up.play()
                 return
             next_level()
@@ -549,7 +549,7 @@ def end_cutscene():
     game.over()
 
 def show_end_lore(level):
-    if (level+1 > player_win_level and info.life() > 0):
+    if (level+1 > PLAYER_WIN_LEVEL and info.life() > 0):
         game.splash("Game Over", "¡Has logrado escapar!")
         story.print_dialog("¡Felicidades, Alex! Has alcanzado el refugio humano.", 80, 90, 50, 150)
         story.print_dialog("Gracias a tu ingenio, los supervivientes ahora tienen una oportunidad.", 80, 90, 50, 150)
@@ -647,10 +647,14 @@ def create_enemy():
     if (current_time - zombie_timer > randint(delay_min_enemies, delay_max_enemies)):
         create_zombie()
         zombie_timer = current_time
-    if (player_level >= 1 and not ghast_exists):
+    if (player_level >= GHAST_APPEARANCE_LEVEL and not ghast_exists):
         if (current_time - ghast_timer > randint(delay_min_ghast, delay_max_ghast)):
             create_ghast()
             ghast_timer = current_time
+        if (first_ghast == True):
+            create_ghast()
+            ghast_timer = current_time
+            first_ghast = False
 
 def create_player():
     global player_sprite, direction, remembered_player_x, remembered_player_y
