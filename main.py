@@ -370,6 +370,7 @@ def next_level():
     music.ba_ding.play()
     remember_player_position(player_sprite)
     destroy_all()
+    ghast_exists = False
     game.splash("Level Up! - " + player_level)
     color.start_fade(color.original_palette, color.black, 500)
     pause(500)
@@ -542,7 +543,7 @@ def destroy_all_bullets():
         sprites.destroy(b.sprite)
 
 def destroy_all_ghasts():
-    global ghast_list
+    global ghast_list, ghast_exists
     for g in ghast_list:
         sprites.destroy(g)
     ghast_exists = False
@@ -611,12 +612,14 @@ def on_projectile_collision(bullet, zombie):
     if (zombie): zombie.set_velocity(-zombie_speed, 0)
 sprites.on_overlap(SpriteKind.projectile,SpriteKind.enemy,on_projectile_collision)
 
-def on_player_collision_with_enemy(player, zombie):
-    global zombie_power, player_hp, stat_lifes_lost
+def on_player_collision_with_enemy(player, enemy):
+    global zombie_power, player_hp, stat_lifes_lost, ghast_exists
     music.zapped.play()
     info.change_life_by(-1)
     stat_lifes_lost+=1
-    zombie.destroy()
+    if (enemy in ghast_list):
+        ghast_exists = False
+    enemy.destroy()
     scene.camera_shake(4, 500)
 sprites.on_overlap(SpriteKind.player,SpriteKind.enemy,on_player_collision_with_enemy)
 

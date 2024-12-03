@@ -396,6 +396,7 @@ function next_level() {
     music.baDing.play()
     remember_player_position(player_sprite)
     destroy_all()
+    let ghast_exists = false
     game.splash("Level Up! - " + player_level)
     color.startFade(color.originalPalette, color.Black, 500)
     pause(500)
@@ -590,7 +591,7 @@ function destroy_all_ghasts() {
     for (let g of ghast_list) {
         sprites.destroy(g)
     }
-    let ghast_exists = false
+    ghast_exists = false
 }
 
 function destroy_all_explosion_particles() {
@@ -675,12 +676,16 @@ sprites.onOverlap(SpriteKind.projectile, SpriteKind.enemy, function on_projectil
     }
     
 })
-sprites.onOverlap(SpriteKind.player, SpriteKind.enemy, function on_player_collision_with_enemy(player: Sprite, zombie: Sprite) {
+sprites.onOverlap(SpriteKind.player, SpriteKind.enemy, function on_player_collision_with_enemy(player: Sprite, enemy: Sprite) {
     
     music.zapped.play()
     info.changeLifeBy(-1)
     stat_lifes_lost += 1
-    zombie.destroy()
+    if (ghast_list.indexOf(enemy) >= 0) {
+        ghast_exists = false
+    }
+    
+    enemy.destroy()
     scene.cameraShake(4, 500)
 })
 //  Eventos
