@@ -4,8 +4,25 @@ let RIGHT_BOUNDARY = 160
 let LEFT_BOUNDARY = 0
 let BOTTOM_BOUNDARY = 120
 let TOP_BOUNDARY = 0
+//  Colors
+let TRANSPARENT = 0
+let WHITE = 1
+let RED = 2
+let PINK = 3
+let ORANGE = 4
+let YELLOW = 5
+let TEAL = 6
+let GREEN = 7
+let BLUE = 8
+let LIGHT_BLUE = 9
+let PURPLE = 10
+let LIGHT_PURPLE = 11
+let DARK_PURPLE = 12
+let TAN = 13
+let BROWN = 14
+let BLACK = 15
 //  Game
-let PLAYER_START_LEVEL = 10
+let PLAYER_START_LEVEL = 1
 let PLAYER_WIN_LEVEL = 10
 let GHAST_APPEARANCE_LEVEL = 3
 //  Sprites
@@ -314,8 +331,8 @@ function initialize_game_data() {
     create_player()
     story.spriteSayText(player_sprite, "ostras pedrin")
     sprites.destroy(skip_lore_sprite)
-    set_game_stats(player_level)
     create_exp_status_bar()
+    set_game_stats(player_level)
     game.onUpdate(function on_on_update() {
         let target_x: number;
         
@@ -339,7 +356,6 @@ function initialize_game_data() {
 //  Funcion recursiva para crear zombies en funcion del nivel
 function gamer() {
     
-    update_exp_status_bar()
     while (player_exp < player_exp_required && info.life() > 0) {
         pause(1)
         destroy_zombies()
@@ -349,11 +365,12 @@ function gamer() {
         } else {
             if (info.life() == 0) {
                 music.spooky.play()
+                //  Caso base 2 - Alex muere
                 return
             }
             
             if (player_level + 1 > PLAYER_WIN_LEVEL) {
-                //  Caso base 1 - Alex
+                //  Caso base 2 - Alex gana
                 music.powerUp.play()
                 return
             }
@@ -366,7 +383,9 @@ function gamer() {
 
 function create_exp_status_bar() {
     
-    exp_status_bar = statusbars.create(40, 4, StatusBarKind.Energy)
+    exp_status_bar = statusbars.create(90, 8, StatusBarKind.xp_sb)
+    exp_status_bar.setBarBorder(1, BLACK)
+    exp_status_bar.setColor(YELLOW, BLACK, RED)
     exp_status_bar.positionDirection(CollisionDirection.Top)
 }
 
@@ -398,7 +417,6 @@ function fade_effect() {
 function update_stats_for_next_level() {
     
     player_exp = 0
-    update_exp_status_bar()
     set_game_stats(player_level)
     music.baDing.play()
 }
@@ -407,6 +425,7 @@ function set_game_stats(player_level: number) {
     set_zombie_stats(player_level)
     set_player_stats(player_level)
     set_ghast_stats(player_level)
+    update_exp_status_bar()
 }
 
 function clear_screen() {
@@ -477,7 +496,7 @@ function set_player_stats(level: number) {
     player_power = 50 + (level - 1) * 10
     player_speed = 200 + (level - 1) * 10
     player_exp_required = 100 * level
-    player_exp_punish = level
+    player_exp_punish = 10 + level * 5
     explosion_power = 50 + (level - 3) * 15
     explosion_particle_amt = 10 + (level - 3) * 3
     explosion_min_range = 30 + (level - 1) * 7
@@ -576,9 +595,10 @@ function update_exp_status_bar() {
     
     exp_status_bar.max = player_exp_required
     exp_status_bar.value = player_exp
-    exp_status_bar.setLabel("EXP: " + player_exp + "/" + player_exp_required)
+    exp_status_bar.setLabel("XP", BLACK)
 }
 
+//  exp_status_bar.set_label("EXP: "+ player_exp + "/" + player_exp_required, BLACK)
 function game_over() {
     
     on_end_screen = true
@@ -640,8 +660,7 @@ sprites.onOverlap(SpriteKind.projectile, SpriteKind.zombie, function on_projecti
         zombie.setVelocity(-zombie_stun_speed, 0)
     }
     
-    let orange = 4
-    tint_sprite_time(zombie, orange, 200)
+    tint_sprite_time(zombie, ORANGE, 200)
     pause(zombie_stun_duration)
     if (zombie) {
         zombie.setVelocity(-zombie_speed, 0)

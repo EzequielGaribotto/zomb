@@ -5,8 +5,26 @@ LEFT_BOUNDARY = 0
 BOTTOM_BOUNDARY = 120
 TOP_BOUNDARY = 0
 
+# Colors
+TRANSPARENT = 0
+WHITE = 1
+RED = 2
+PINK = 3
+ORANGE = 4
+YELLOW = 5
+TEAL = 6
+GREEN = 7
+BLUE = 8
+LIGHT_BLUE = 9
+PURPLE = 10
+LIGHT_PURPLE = 11
+DARK_PURPLE = 12
+TAN = 13
+BROWN = 14
+BLACK = 15
+
 # Game
-PLAYER_START_LEVEL = 10
+PLAYER_START_LEVEL = 1
 PLAYER_WIN_LEVEL = 10
 GHAST_APPEARANCE_LEVEL = 3
 
@@ -58,7 +76,6 @@ ghast_hp = 0
 ypos_ghast_sprite = 0
 ghast_stun_speed = 0
 ghast_stun_duration = 0
-
 
 # Explosion stats
 explosion_power = 0
@@ -332,16 +349,14 @@ def initialize_game_data():
     create_player()
     story.sprite_say_text(player_sprite, "ostras pedrin")
     sprites.destroy(skip_lore_sprite)
-    set_game_stats(player_level)
     create_exp_status_bar()
+    set_game_stats(player_level)
     game.on_update(on_on_update)
     info.set_life(3)
 
 # Funcion recursiva para crear zombies en funcion del nivel
 def gamer():
     global player_exp, player_exp_required
-    update_exp_status_bar()
-
     while player_exp < player_exp_required and info.life() > 0:
         pause(1)
         destroy_zombies()
@@ -350,16 +365,19 @@ def gamer():
             create_enemies()
         else:
             if (info.life() == 0):
-                music.spooky.play()
+                music.spooky.play() # Caso base 2 - Alex muere
                 return
-            if (player_level+1 > PLAYER_WIN_LEVEL): # Caso base 1 - Alex
+            if (player_level+1 > PLAYER_WIN_LEVEL): # Caso base 2 - Alex gana
                 music.power_up.play()
                 return
             next_level()
 
 def create_exp_status_bar():
     global exp_status_bar
-    exp_status_bar = statusbars.create(40, 4, StatusBarKind.Energy)
+    exp_status_bar = statusbars.create(90, 8, StatusBarKind.xp_sb)
+    exp_status_bar.set_bar_border(1, BLACK)
+    exp_status_bar.set_color(YELLOW, BLACK, RED)
+
     exp_status_bar.position_direction(CollisionDirection.TOP)
 
 def next_level():
@@ -387,7 +405,6 @@ def fade_effect():
 def update_stats_for_next_level():
     global player_level, player_exp, player_sprite, remembered_player_x, remembered_player_y
     player_exp = 0
-    update_exp_status_bar()
     set_game_stats(player_level)
     music.ba_ding.play()
 
@@ -395,6 +412,7 @@ def set_game_stats(player_level):
     set_zombie_stats(player_level)
     set_player_stats(player_level)
     set_ghast_stats(player_level)
+    update_exp_status_bar()
 
 def clear_screen():
     remember_player_position(player_sprite)
@@ -458,7 +476,7 @@ def set_player_stats(level: int):
     player_power = 50 + (level - 1) * 10
     player_speed = 200 + (level - 1) * 10
     player_exp_required = 100 * level
-    player_exp_punish = level
+    player_exp_punish = 10 + level * 5
 
     explosion_power = 50 + (level - 3) * 15
     explosion_particle_amt = 10 + (level - 3) * 3
@@ -541,8 +559,8 @@ def update_exp_status_bar():
     global player_exp_required, player_exp, exp_status_bar
     exp_status_bar.max = player_exp_required
     exp_status_bar.value = player_exp
-    exp_status_bar.set_label("EXP: "+ player_exp + "/" + player_exp_required)
-
+    exp_status_bar.set_label("XP", BLACK)
+    # exp_status_bar.set_label("EXP: "+ player_exp + "/" + player_exp_required, BLACK)
 def game_over():
     global on_end_screen
     on_end_screen = True
@@ -598,8 +616,7 @@ def on_projectile_collision_with_zombie(bullet, zombie):
     zombie_status_bar = statusbars.get_status_bar_attached_to(StatusBarKind.zombie_sb, zombie)
     if (zombie_status_bar): zombie_status_bar.value += -player_power
     if (zombie): zombie.set_velocity(-zombie_stun_speed, 0)
-    orange = 4
-    tint_sprite_time(zombie,orange,200)
+    tint_sprite_time(zombie,ORANGE,200)
     pause(zombie_stun_duration)
     if (zombie): zombie.set_velocity(-zombie_speed, 0)
 
