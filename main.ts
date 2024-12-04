@@ -22,7 +22,7 @@ let TAN = 13
 let BROWN = 14
 let BLACK = 15
 //  Game
-let PLAYER_START_LEVEL = 9
+let PLAYER_START_LEVEL = 1
 let PLAYER_WIN_LEVEL = 10
 let GHAST_APPEARANCE_LEVEL = 3
 //  Sprites
@@ -353,7 +353,6 @@ function initialize_game_data() {
     info.setLife(3)
 }
 
-//  Funcion recursiva para crear zombies en funcion del nivel
 function gamer() {
     
     while (true) {
@@ -365,18 +364,15 @@ function gamer() {
         } else {
             if (info.life() == 0) {
                 music.spooky.play()
-                //  Caso base 2 - Alex muere
                 return
             }
             
             if (player_level + 1 > PLAYER_WIN_LEVEL) {
-                //  Caso base 2 - Alex gana
                 music.powerUp.play()
                 return
             }
             
             next_level()
-            gamer()
         }
         
     }

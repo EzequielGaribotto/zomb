@@ -24,7 +24,7 @@ BROWN = 14
 BLACK = 15
 
 # Game
-PLAYER_START_LEVEL = 9
+PLAYER_START_LEVEL = 1
 PLAYER_WIN_LEVEL = 10
 GHAST_APPEARANCE_LEVEL = 3
 
@@ -355,7 +355,6 @@ def initialize_game_data():
     game.on_update(on_on_update)
     info.set_life(3)
 
-# Funcion recursiva para crear zombies en funcion del nivel
 def gamer():
     global player_exp, player_exp_required
     while True:
@@ -366,13 +365,12 @@ def gamer():
             create_enemies()
         else:
             if (info.life() == 0):
-                music.spooky.play() # Caso base 2 - Alex muere
+                music.spooky.play()
                 return
-            if (player_level+1 > PLAYER_WIN_LEVEL): # Caso base 2 - Alex gana
+            if (player_level+1 > PLAYER_WIN_LEVEL):
                 music.power_up.play()
                 return
             next_level()
-            gamer()
 
 def create_exp_status_bar():
     global exp_status_bar
