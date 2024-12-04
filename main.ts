@@ -22,7 +22,7 @@ let TAN = 13
 let BROWN = 14
 let BLACK = 15
 //  Game
-let PLAYER_START_LEVEL = 1
+let PLAYER_START_LEVEL = 9
 let PLAYER_WIN_LEVEL = 10
 let GHAST_APPEARANCE_LEVEL = 3
 //  Sprites
@@ -109,9 +109,9 @@ let stat_damage_dealt = 0
 let stat_lifes_won = 0
 let stat_lifes_lost = 0
 //  Timers
-let zombie_timer = game.runtime()
-let ghast_timer = game.runtime()
-let footstep_timer = game.runtime()
+let zombie_timer = 0
+let ghast_timer = 0
+let footstep_timer = 0
 let remembered_player_x = 20
 let remembered_player_y = 60
 //  Classes
@@ -349,7 +349,6 @@ function initialize_game_data() {
         current_camera_x += (target_x - current_camera_x) * smoothing_factor
         scene.centerCameraAt(current_camera_x, 60)
         set_boundaries()
-        play_foot_step()
     })
     info.setLife(3)
 }
@@ -377,6 +376,7 @@ function gamer() {
             }
             
             next_level()
+            gamer()
         }
         
     }
@@ -401,7 +401,6 @@ function next_level() {
     fade_effect()
     show_game_lore(player_level)
     recreate_screen()
-    gamer()
 }
 
 function recreate_screen() {
@@ -696,39 +695,53 @@ sprites.onOverlap(SpriteKind.projectile, SpriteKind.ghast, function on_projectil
     
 })
 function blink_sprite(sprite: Sprite, original_image: Image, blink_color: number, duration: number, interval: number) {
-    let tinted_image: Image;
-    let end_time = game.runtime() + duration
-    while (game.runtime() < end_time) {
-        tinted_image = original_image.clone()
-        for (let x = 0; x < tinted_image.width; x++) {
-            for (let y = 0; y < tinted_image.height; y++) {
-                if (tinted_image.getPixel(x, y) != 0) {
-                    tinted_image.setPixel(x, y, blink_color)
+    /** Parpadea el sprite alternando entre su color original y un color de parpadeo. */
+    control.runInParallel(function blink() {
+        let tinted_image: Image;
+        let end_time = game.runtime() + duration
+        while (game.runtime() < end_time) {
+            //  Crear imagen tintada
+            tinted_image = original_image.clone()
+            for (let x = 0; x < tinted_image.width; x++) {
+                for (let y = 0; y < tinted_image.height; y++) {
+                    if (tinted_image.getPixel(x, y) != 0) {
+                        tinted_image.setPixel(x, y, blink_color)
+                    }
+                    
                 }
-                
             }
+            sprite.setImage(tinted_image)
+            pause(interval)
+            sprite.setImage(original_image)
+            pause(interval)
         }
-        sprite.setImage(tinted_image)
-        pause(interval)
-        sprite.setImage(original_image)
-        pause(interval)
-    }
+    })
 }
 
+//  Ejecutar la rutina en paralelo
+//  Resetear a 0
+//  Temporizador en paralelo
 sprites.onOverlap(SpriteKind.player, SpriteKind.zombie, function on_player_collision_with_zombie(player: Sprite, zombie: Sprite) {
     
     if (player_iframes > 0) {
         return
     }
     
-    player_iframes = 1000
+    //  Si el jugador tiene iframes, no aplicar daño
+    //  Configurar iframes y lógica de colisión
+    player_iframes = 2000
     music.zapped.play()
     info.changeLifeBy(-1)
     stat_lifes_lost += 1
     scene.cameraShake(4, 500)
-    blink_sprite(player, player.image.clone(), 1, player_iframes, 100)
-    pause(player_iframes)
-    player_iframes = 0
+    blink_sprite(player, player.image.clone(), 1, player_iframes, 25)
+    control.runInParallel(function reset_player_iframes() {
+        /** Resetea los iframes del jugador después de la duración especificada. */
+        
+        pause(player_iframes)
+        //  Esperar la duración de los iframes
+        player_iframes = 0
+    })
 })
 sprites.onOverlap(SpriteKind.player, SpriteKind.ghast, function on_player_collision_with_ghast(player: Sprite, ghast: Sprite) {
     
@@ -1457,6 +1470,7 @@ function animate_bullet_collision(bullet: any) {
 }
 
 let current_camera_x = 0
+// play_foot_step()
 function set_boundaries() {
     if (player_sprite.x < 0) {
         player_sprite.x = 0

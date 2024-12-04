@@ -24,7 +24,7 @@ BROWN = 14
 BLACK = 15
 
 # Game
-PLAYER_START_LEVEL = 1
+PLAYER_START_LEVEL = 9
 PLAYER_WIN_LEVEL = 10
 GHAST_APPEARANCE_LEVEL = 3
 
@@ -125,9 +125,9 @@ stat_lifes_won = 0
 stat_lifes_lost = 0
 
 # Timers
-zombie_timer = game.runtime()
-ghast_timer = game.runtime()
-footstep_timer = game.runtime()
+zombie_timer = 0
+ghast_timer = 0
+footstep_timer = 0
 
 remembered_player_x = 20
 remembered_player_y = 60
@@ -372,6 +372,7 @@ def gamer():
                 music.power_up.play()
                 return
             next_level()
+            gamer()
 
 def create_exp_status_bar():
     global exp_status_bar
@@ -391,7 +392,6 @@ def next_level():
     fade_effect()
     show_game_lore(player_level)
     recreate_screen()
-    gamer()
 
 def recreate_screen():
     create_player()
@@ -644,37 +644,51 @@ def on_projectile_collision_with_ghast(bullet, ghast):
 sprites.on_overlap(SpriteKind.projectile,SpriteKind.ghast,on_projectile_collision_with_ghast)
 
 
-def blink_sprite(sprite: Sprite, original_image:Image, blink_color: int, duration: int, interval: int):
-    end_time = game.runtime() + duration
-    while game.runtime() < end_time:
-        tinted_image = original_image.clone()
-        for x in range(tinted_image.width):
-            for y in range(tinted_image.height):
-                if tinted_image.get_pixel(x, y) != 0:
-                    tinted_image.set_pixel(x, y, blink_color)
-        sprite.set_image(tinted_image)
-        pause(interval)
-        
-        sprite.set_image(original_image)
-        pause(interval)
+def blink_sprite(sprite: Sprite, original_image: Image, blink_color: int, duration: int, interval: int):
+    """
+    Parpadea el sprite alternando entre su color original y un color de parpadeo.
+    """
+    def blink():
+        end_time = game.runtime() + duration
+        while game.runtime() < end_time:
+            # Crear imagen tintada
+            tinted_image = original_image.clone()
+            for x in range(tinted_image.width):
+                for y in range(tinted_image.height):
+                    if tinted_image.get_pixel(x, y) != 0:
+                        tinted_image.set_pixel(x, y, blink_color)
+            sprite.set_image(tinted_image)
+            pause(interval)
+            sprite.set_image(original_image)
+            pause(interval)
+    control.run_in_parallel(blink)  # Ejecutar la rutina en paralelo
+
+def reset_player_iframes():
+    """
+    Resetea los iframes del jugador después de la duración especificada.
+    """
+    global player_iframes
+    pause(player_iframes)  # Esperar la duración de los iframes
+    player_iframes = 0    # Resetear a 0
 
 def on_player_collision_with_zombie(player, zombie):
     global player_iframes, player_hp, stat_lifes_lost
     if player_iframes > 0:
-        return
-    
-    player_iframes = 1000 
+        return  # Si el jugador tiene iframes, no aplicar daño
+
+    # Configurar iframes y lógica de colisión
+    player_iframes = 2000
     music.zapped.play()
     info.change_life_by(-1)
     stat_lifes_lost += 1
     scene.camera_shake(4, 500)
 
-    blink_sprite(player, player.image.clone(), 1, player_iframes, 100)
-    
-    pause(player_iframes)
-    player_iframes = 0
+    blink_sprite(player, player.image.clone(), 1, player_iframes, 25)
+    control.run_in_parallel(reset_player_iframes)  # Temporizador en paralelo
 
 sprites.on_overlap(SpriteKind.player, SpriteKind.zombie, on_player_collision_with_zombie)
+
+
 
 
 def on_player_collision_with_ghast(player, ghast):
@@ -1450,7 +1464,7 @@ def on_on_update():
     scene.center_camera_at(current_camera_x, 60)
 
     set_boundaries()
-    play_foot_step()
+    #play_foot_step()
 
 
 def set_boundaries():
