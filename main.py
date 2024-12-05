@@ -44,7 +44,6 @@ explosion_particle_list:List[Sprite] = []
 exp_status_bar:StatusBarSprite = None
 zombie_status_bar: StatusBarSprite = None
 ghast_status_bar:StatusBarSprite = None
-i_frames_cooldown_bar:StatusBarSprite = None
 
 # Text Sprites
 title_sprite: TextSprite = None
@@ -149,7 +148,6 @@ class StatusBarKind:
     ghast_sb = SpriteKind.create()
     xp_sb = SpriteKind.create()
     route_sb = SpriteKind.create()
-    i_frames_cooldown_sb = SpriteKind.create()
 # main
 open_main_screen()
 
@@ -365,7 +363,6 @@ def gamer():
         destroy_bullets()
         if player_exp < player_exp_required and info.life() > 0:
             create_enemies()
-            update_iframe_cooldown()
         else:
             if (info.life() == 0):
                 music.spooky.play()
@@ -470,7 +467,7 @@ def show_game_lore(player_level):
 
 def set_player_stats(level: int):
     global player_hp, player_power, player_speed, player_exp_required, stat_lifes_won, player_exp_punish, explosion_power, blood_explosion_power, explosion_particle_amt, blood_explosion_particle_amt
-    global blood_explosion_max_range, blood_explosion_min_range, explosion_min_range, explosion_max_range, player_iframes
+    global blood_explosion_max_range, blood_explosion_min_range, explosion_min_range, explosion_max_range
 
     if info.life() < 3:
         info.change_life_by(+1)
@@ -491,8 +488,6 @@ def set_player_stats(level: int):
     blood_explosion_min_range = 15 + (level - 1) * 5
     blood_explosion_max_range = 25 + (level - 1) * 5
     blood_explosion_particle_amt = 10 + (level - 1) * 5
-
-    player_iframes = 1500
 
 
 def set_zombie_stats(level: int):
@@ -539,10 +534,7 @@ def destroy_zombies():
             deleted_zombies_list.append(z)
             stat_zombies_escaped+=1
             update_exp_status_bar()
-def on_zero(status):
-    player_iframes = 0
-    player_iframes_active = False
-statusbars.on_zero(StatusBarKind.i_frames_cooldown_sb, on_zero)
+
 
 def destroy_all_zombies():
     sprites.destroy_all_sprites_of_kind(SpriteKind.zombie)
@@ -683,11 +675,10 @@ def on_player_collision_with_zombie(player, zombie):
         return  # Si el jugador tiene iframes, no aplicar daño
 
     # Configurar iframes y lógica de colisión
-    player_iframes = 1500
+    player_iframes = 2000
     music.zapped.play()
     info.change_life_by(-1)
     stat_lifes_lost += 1
-    zombie.destroy()
     scene.camera_shake(4, 500)
 
     blink_sprite(player, player.image.clone(), 1, player_iframes, 25)
@@ -703,7 +694,7 @@ def on_player_collision_with_ghast(player, ghast):
     if player_iframes > 0:
         return
     
-    player_iframes = 1500
+    player_iframes = 1000
     music.zapped.play()
     info.change_life_by(-1)
     stat_lifes_lost += 1
@@ -711,8 +702,10 @@ def on_player_collision_with_ghast(player, ghast):
     ghast.destroy()
     scene.camera_shake(7, 500)
 
-    blink_sprite(player, player.image.clone(), 1, player_iframes, 25)
-    control.run_in_parallel(reset_player_iframes)  # Temporizador en paralelo
+    blink_sprite(player, player.image.clone(), 1, player_iframes, 100)
+    
+    pause(player_iframes)
+    player_iframes = 0
 
 sprites.on_overlap(SpriteKind.player, SpriteKind.ghast, on_player_collision_with_ghast)
 
@@ -786,65 +779,33 @@ def create_enemies():
             create_ghast()
             ghast_timer = current_time
             first_ghast = False
-first = False
-iframe_cooldown_last_update = game.runtime()  # Initialize properly at the start
+
 def create_player():
-    global player_sprite, direction, remembered_player_x, remembered_player_y, i_frames_cooldown_bar, iframe_cooldown, player_iframes_active, first
-    global PLAYER_I_FRAMES_COOLDOWN
+    global player_sprite, direction, remembered_player_x, remembered_player_y
     player_sprite = sprites.create(img("""
-        . . . . . . f f f f f f . . . .
-        . . . . f f e e e e f 2 f . . .
-        . . . f f e e e e f 2 2 2 f . .
-        . . . f e e e f f e e e e f . .
-        . . . f f f f e e 2 2 2 2 e f .
-        . . . f e 2 2 2 f f f f e 2 f .
-        . . f f f f f f f e e e f f f .
-        . . f f e 4 4 e b f 4 4 e e f .
-        . . f e e 4 d 4 1 f d d e f . .
-        . . . f e e e 4 d d d d f . . .
-        . . . . f f e e 4 4 4 e f . . .
-        . . . . . 4 d d e 2 2 2 f . . .
-        . . . . . e d d e 2 2 2 f . . .
-        . . . . . f e e f 4 5 5 f . . .
-        . . . . . . f f f f f f . . . .
-        . . . . . . . f f f . . . . . .
-    """),
+            . . . . . . f f f f f f . . . .
+                                        . . . . f f e e e e f 2 f . . .
+                                        . . . f f e e e e f 2 2 2 f . .
+                                        . . . f e e e f f e e e e f . .
+                                        . . . f f f f e e 2 2 2 2 e f .
+                                        . . . f e 2 2 2 f f f f e 2 f .
+                                        . . f f f f f f f e e e f f f .
+                                        . . f f e 4 4 e b f 4 4 e e f .
+                                        . . f e e 4 d 4 1 f d d e f . .
+                                        . . . f e e e 4 d d d d f . . .
+                                        . . . . f f e e 4 4 4 e f . . .
+                                        . . . . . 4 d d e 2 2 2 f . . .
+                                        . . . . . e d d e 2 2 2 f . . .
+                                        . . . . . f e e f 4 5 5 f . . .
+                                        . . . . . . f f f f f f . . . .
+                                        . . . . . . . f f f . . . . . .
+        """),
         SpriteKind.player)
     player_sprite.set_position(remembered_player_x, remembered_player_y)
     controller.move_sprite(player_sprite)
     player_sprite.set_stay_in_screen(True)
     effects.star_field.start_screen_effect()
     scroller.set_camera_scrolling_multipliers(1, 0)
-    # Barra de enfriamiento para *iframes*
-    player_iframes_active = False
-    i_frames_cooldown_bar = statusbars.create(15,4, StatusBarKind.i_frames_cooldown_sb)
-    i_frames_cooldown_bar.attach_to_sprite(player_sprite)
-
-    i_frames_cooldown_bar.set_bar_border(1, BLACK)
-    i_frames_cooldown_bar.set_color(WHITE, TRANSPARENT)
-
-    i_frames_cooldown_bar.value = (iframe_cooldown / PLAYER_I_FRAMES_COOLDOWN) * 100
-    i_frames_cooldown_bar.max = 100
-
-
-
-player_iframes_active = False
-iframe_cooldown = 0
-PLAYER_I_FRAMES_COOLDOWN = 10000
-
-def update_iframe_cooldown():
-    global iframe_cooldown, player_iframes_active, i_frames_cooldown_bar, iframe_cooldown_last_update
-    current_time = game.runtime()
-
-    if iframe_cooldown > 0:
-        iframe_cooldown -= current_time - iframe_cooldown_last_update
-        iframe_cooldown_last_update = current_time
-        i_frames_cooldown_bar.value = (iframe_cooldown / PLAYER_I_FRAMES_COOLDOWN) * 100
-    else:
-        iframe_cooldown = 0
-        player_iframes_active = False
-        i_frames_cooldown_bar.value = 100
-
 
 def create_zombie():
     global zombie_hp, zombie_sprite, ypos_zombie_sprite, zombie_status_bar
@@ -1403,37 +1364,22 @@ def create_bullet():
     bullet_list.append(bullet_sprite)
     return bullet_sprite
 
-
-
-player_activate_iframes_with_a_cooldown = 0
-last_iframe_activation = -PLAYER_I_FRAMES_COOLDOWN
-
-# Botón A
+# Button A
 def on_a_pressed():
-    global on_menu, on_zombie_screen, on_lore_screen, on_end_screen, player_sprite, last_iframe_activation, iframe_cooldown, iframe_cooldown_last_update
-    current_time = game.runtime()
-
-    if on_menu:
+    global on_menu, on_zombie_screen, on_lore_screen
+    if on_menu == True:
         on_menu = False
         close_menu()
         story.start_cutscene(lore_cutscene)
         on_lore_screen = True
-    elif on_lore_screen:
+    elif on_lore_screen == True:
         story.clear_all_text()
         skip_lore()
-    elif on_zombie_screen:
-        if current_time - last_iframe_activation >= PLAYER_I_FRAMES_COOLDOWN:
-            player_iframes = 1500
-            player_iframes_active = True
-            iframe_cooldown = PLAYER_I_FRAMES_COOLDOWN 
-            iframe_cooldown_last_update = game.runtime()
-            last_iframe_activation = current_time
-            story.cancel_current_cutscene()
-            blink_sprite(player_sprite, player_sprite.image.clone(), 0, player_iframes, 25)
-            control.run_in_parallel(reset_player_iframes)
-    elif on_end_screen:
+    elif on_zombie_screen == True:
+        story.cancel_current_cutscene()
+        on_zombie_screen = False
+    elif on_end_screen == True:
         story.clear_all_text()
-
 controller.A.on_event(ControllerButtonEvent.PRESSED, on_a_pressed)
 
 # Related functions to button A
@@ -1552,7 +1498,7 @@ def play_custom_hit_sound():
     endFreq = randint(140, 160)
     duration = randint(150, 250)  # Slight variation in duration
     music.play_sound_effect(music.create_sound_effect(
-        waveShape=WaveShape.SAWTOOTH,  
+        waveShape=WaveShape.SAWTOOTH,
         startFrequency=startFreq,      # High starting frequency for "punchy" effect
         endFrequency=endFreq,        # Lower ending frequency for a quick drop
         startVolume=100,         # Loud start
@@ -1589,7 +1535,7 @@ def tint_sprite(sprite: Sprite, tint_color: int):
     for x in range(original_image.width):
         for y in range(original_image.height):
             color2 = original_image.get_pixel(x, y)
-            if color2 != 0: 
+            if color2 != 0:
                 original_image.set_pixel(x, y, tint_color)
     sprite.set_image(original_image)
 
