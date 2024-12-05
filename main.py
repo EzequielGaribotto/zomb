@@ -539,7 +539,10 @@ def destroy_zombies():
             deleted_zombies_list.append(z)
             stat_zombies_escaped+=1
             update_exp_status_bar()
-
+def on_zero(status):
+    player_iframes = 0
+    player_iframes_active = False
+statusbars.on_zero(StatusBarKind.i_frames_cooldown_sb, on_zero)
 
 def destroy_all_zombies():
     sprites.destroy_all_sprites_of_kind(SpriteKind.zombie)

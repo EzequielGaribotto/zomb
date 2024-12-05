@@ -567,6 +567,10 @@ function destroy_zombies() {
     }
 }
 
+statusbars.onZero(StatusBarKind.i_frames_cooldown_sb, function on_zero(status: StatusBarSprite) {
+    let player_iframes = 0
+    let player_iframes_active = false
+})
 function destroy_all_zombies() {
     sprites.destroyAllSpritesOfKind(SpriteKind.zombie)
 }
