@@ -40,6 +40,7 @@ let explosion_particle_list : Sprite[] = []
 let exp_status_bar : StatusBarSprite = null
 let zombie_status_bar : StatusBarSprite = null
 let ghast_status_bar : StatusBarSprite = null
+let i_frames_cooldown_bar : StatusBarSprite = null
 //  Text Sprites
 let title_sprite : TextSprite = null
 let text_sprite : TextSprite = null
@@ -129,6 +130,7 @@ namespace StatusBarKind {
     export const ghast_sb = SpriteKind.create()
     export const xp_sb = SpriteKind.create()
     export const route_sb = SpriteKind.create()
+    export const i_frames_cooldown_sb = SpriteKind.create()
 }
 
 //  main
@@ -361,6 +363,7 @@ function gamer() {
         destroy_bullets()
         if (player_exp < player_exp_required && info.life() > 0) {
             create_enemies()
+            update_iframe_cooldown()
         } else {
             if (info.life() == 0) {
                 music.spooky.play()
@@ -504,6 +507,7 @@ function set_player_stats(level: number) {
     blood_explosion_min_range = 15 + (level - 1) * 5
     blood_explosion_max_range = 25 + (level - 1) * 5
     blood_explosion_particle_amt = 10 + (level - 1) * 5
+    player_iframes = 1500
 }
 
 function set_zombie_stats(level: number) {
@@ -715,6 +719,14 @@ function blink_sprite(sprite: Sprite, original_image: Image, blink_color: number
 }
 
 //  Ejecutar la rutina en paralelo
+function reset_player_iframes() {
+    /** Resetea los iframes del jugador después de la duración especificada. */
+    
+    pause(player_iframes)
+    //  Esperar la duración de los iframes
+    player_iframes = 0
+}
+
 //  Resetear a 0
 //  Temporizador en paralelo
 sprites.onOverlap(SpriteKind.player, SpriteKind.zombie, function on_player_collision_with_zombie(player: Sprite, zombie: Sprite) {
@@ -725,36 +737,31 @@ sprites.onOverlap(SpriteKind.player, SpriteKind.zombie, function on_player_colli
     
     //  Si el jugador tiene iframes, no aplicar daño
     //  Configurar iframes y lógica de colisión
-    player_iframes = 2000
+    player_iframes = 1500
     music.zapped.play()
     info.changeLifeBy(-1)
     stat_lifes_lost += 1
+    zombie.destroy()
     scene.cameraShake(4, 500)
     blink_sprite(player, player.image.clone(), 1, player_iframes, 25)
-    control.runInParallel(function reset_player_iframes() {
-        /** Resetea los iframes del jugador después de la duración especificada. */
-        
-        pause(player_iframes)
-        //  Esperar la duración de los iframes
-        player_iframes = 0
-    })
+    control.runInParallel(reset_player_iframes)
 })
+//  Temporizador en paralelo
 sprites.onOverlap(SpriteKind.player, SpriteKind.ghast, function on_player_collision_with_ghast(player: Sprite, ghast: Sprite) {
     
     if (player_iframes > 0) {
         return
     }
     
-    player_iframes = 1000
+    player_iframes = 1500
     music.zapped.play()
     info.changeLifeBy(-1)
     stat_lifes_lost += 1
     ghast_exists = false
     ghast.destroy()
     scene.cameraShake(7, 500)
-    blink_sprite(player, player.image.clone(), 1, player_iframes, 100)
-    pause(player_iframes)
-    player_iframes = 0
+    blink_sprite(player, player.image.clone(), 1, player_iframes, 25)
+    control.runInParallel(reset_player_iframes)
 })
 //  Eventos
 sprites.onOverlap(SpriteKind.explosion, SpriteKind.zombie, function on_explosion_collision_with_zombie(explosion: Sprite, zombie: Sprite) {
@@ -833,31 +840,61 @@ function create_enemies() {
     
 }
 
+let first = false
+let iframe_cooldown_last_update = game.runtime()
+//  Initialize properly at the start
 function create_player() {
     
+    
     player_sprite = sprites.create(img`
-            . . . . . . f f f f f f . . . .
-                                        . . . . f f e e e e f 2 f . . .
-                                        . . . f f e e e e f 2 2 2 f . .
-                                        . . . f e e e f f e e e e f . .
-                                        . . . f f f f e e 2 2 2 2 e f .
-                                        . . . f e 2 2 2 f f f f e 2 f .
-                                        . . f f f f f f f e e e f f f .
-                                        . . f f e 4 4 e b f 4 4 e e f .
-                                        . . f e e 4 d 4 1 f d d e f . .
-                                        . . . f e e e 4 d d d d f . . .
-                                        . . . . f f e e 4 4 4 e f . . .
-                                        . . . . . 4 d d e 2 2 2 f . . .
-                                        . . . . . e d d e 2 2 2 f . . .
-                                        . . . . . f e e f 4 5 5 f . . .
-                                        . . . . . . f f f f f f . . . .
-                                        . . . . . . . f f f . . . . . .
-        `, SpriteKind.player)
+        . . . . . . f f f f f f . . . .
+        . . . . f f e e e e f 2 f . . .
+        . . . f f e e e e f 2 2 2 f . .
+        . . . f e e e f f e e e e f . .
+        . . . f f f f e e 2 2 2 2 e f .
+        . . . f e 2 2 2 f f f f e 2 f .
+        . . f f f f f f f e e e f f f .
+        . . f f e 4 4 e b f 4 4 e e f .
+        . . f e e 4 d 4 1 f d d e f . .
+        . . . f e e e 4 d d d d f . . .
+        . . . . f f e e 4 4 4 e f . . .
+        . . . . . 4 d d e 2 2 2 f . . .
+        . . . . . e d d e 2 2 2 f . . .
+        . . . . . f e e f 4 5 5 f . . .
+        . . . . . . f f f f f f . . . .
+        . . . . . . . f f f . . . . . .
+    `, SpriteKind.player)
     player_sprite.setPosition(remembered_player_x, remembered_player_y)
     controller.moveSprite(player_sprite)
     player_sprite.setStayInScreen(true)
     effects.starField.startScreenEffect()
     scroller.setCameraScrollingMultipliers(1, 0)
+    //  Barra de enfriamiento para *iframes*
+    player_iframes_active = false
+    i_frames_cooldown_bar = statusbars.create(15, 4, StatusBarKind.i_frames_cooldown_sb)
+    i_frames_cooldown_bar.attachToSprite(player_sprite)
+    i_frames_cooldown_bar.setBarBorder(1, BLACK)
+    i_frames_cooldown_bar.setColor(WHITE, TRANSPARENT)
+    i_frames_cooldown_bar.value = iframe_cooldown / PLAYER_I_FRAMES_COOLDOWN * 100
+    i_frames_cooldown_bar.max = 100
+}
+
+let player_iframes_active = false
+let iframe_cooldown = 0
+let PLAYER_I_FRAMES_COOLDOWN = 10000
+function update_iframe_cooldown() {
+    
+    let current_time = game.runtime()
+    if (iframe_cooldown > 0) {
+        iframe_cooldown -= current_time - iframe_cooldown_last_update
+        iframe_cooldown_last_update = current_time
+        i_frames_cooldown_bar.value = iframe_cooldown / PLAYER_I_FRAMES_COOLDOWN * 100
+    } else {
+        iframe_cooldown = 0
+        player_iframes_active = false
+        i_frames_cooldown_bar.value = 100
+    }
+    
 }
 
 function create_zombie() {
@@ -1369,10 +1406,15 @@ function create_bullet(): Sprite {
     return bullet_sprite
 }
 
-//  Button A
+let player_activate_iframes_with_a_cooldown = 0
+let last_iframe_activation = -PLAYER_I_FRAMES_COOLDOWN
+//  Botón A
 function on_a_pressed() {
+    let player_iframes: number;
+    let player_iframes_active: boolean;
     
-    if (on_menu == true) {
+    let current_time = game.runtime()
+    if (on_menu) {
         on_menu = false
         close_menu()
         story.startCutscene(function lore_cutscene() {
@@ -1384,13 +1426,22 @@ function on_a_pressed() {
             })
         })
         on_lore_screen = true
-    } else if (on_lore_screen == true) {
+    } else if (on_lore_screen) {
         story.clearAllText()
         skip_lore()
-    } else if (on_zombie_screen == true) {
-        story.cancelCurrentCutscene()
-        on_zombie_screen = false
-    } else if (on_end_screen == true) {
+    } else if (on_zombie_screen) {
+        if (current_time - last_iframe_activation >= PLAYER_I_FRAMES_COOLDOWN) {
+            player_iframes = 1500
+            player_iframes_active = true
+            iframe_cooldown = PLAYER_I_FRAMES_COOLDOWN
+            iframe_cooldown_last_update = game.runtime()
+            last_iframe_activation = current_time
+            story.cancelCurrentCutscene()
+            blink_sprite(player_sprite, player_sprite.image.clone(), 0, player_iframes, 25)
+            control.runInParallel(reset_player_iframes)
+        }
+        
+    } else if (on_end_screen) {
         story.clearAllText()
     }
     
